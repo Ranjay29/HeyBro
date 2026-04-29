@@ -1,7 +1,7 @@
 name: Deploy Frontend
 on:
   push:
-    branches: [ main ] # Change to 'master' if that's your branch name
+    branches: [ main ]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -10,15 +10,14 @@ jobs:
 
       - name: Install and Build
         run: |
-          cd frontend        # Enter the frontend folder first!
+          cd docs
           npm install
           npm run build
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Points to the 'dist' folder inside 'frontend'
-          path: './frontend/dist' 
+          path: './docs/dist'
 
   deploy:
     needs: build
