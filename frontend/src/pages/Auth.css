@@ -1,0 +1,138 @@
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg,purple,#c01600,#d1ac04) ;
+}
+.splash-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000; /* Match your GIF background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.splash-gif {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: zoomPulse 3s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+}
+@keyframes zoomPulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  } 
+  50% {
+    transform: scale(1.1); /* Zoom in peak */
+    opacity: 1;
+  } 
+  100% {
+    transform: scale(0.5); /* Zoom back out */
+    opacity: 0.5;
+  }
+}
+
+.auth-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-card {
+  background: white;
+  padding: 45px;
+  border-radius: 15px;
+  width: 370px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  transition: 0.3s ease;
+}
+
+.auth-card:hover {
+  transform: translateY(-5px);
+}
+
+.auth-card h2 {
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 600;
+}
+
+.auth-card input {
+  width: 90%;
+  padding: 13px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.auth-card input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+}
+
+.auth-card button {
+  width: 90%;
+  padding: 13px;
+  background: #667eea;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.auth-card button:hover {
+  background: #5a67d8;
+}
+
+.auth-card p {
+  margin-top: 18px;
+  font-size: 14px;
+}
+
+.auth-card a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-card a:hover {
+  text-decoration: underline;
+}
+
+.password-wrapper {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-password {
+  position: absolute;
+  font-size: x-large;
+  right: 1.5rem;
+  top: 0.7rem;
+  cursor: pointer;
+  color: black;
+}
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .auth-card {
+    width: 90%;
+    padding: 30px;
+  }
+}

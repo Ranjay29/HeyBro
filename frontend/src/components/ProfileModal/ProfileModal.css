@@ -1,0 +1,35 @@
+.pm-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+.pm-modal{
+  width:90%;
+  max-width:520px;
+  background:#fff;
+  border-radius:10px;
+  padding:18px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.2);
+}
+.pm-close{
+  float:right;
+  background:transparent;
+  border:0;
+  font-size:18px;
+}
+.pm-header{display:flex;gap:12px;align-items:center}
+.pm-header img{width:88px;height:88px;border-radius:50%;object-fit:cover}
+.pm-user-info h2{margin:0;font-size:18px}
+.pm-username{color:#666;margin:4px 0}
+.pm-details{margin-top:12px;color:#444}
+.pm-actions{display:flex;gap:8px;margin-top:14px}.share-btn{background:#eee;padding:8px 12px;border-radius:6px;border:0}
+.chat-btn{background:#fff;border:1px solid #ddd;padding:8px 12px;border-radius:6px}
+
+@media (max-width:600px){
+  .pm-modal{padding:12px}
+  .pm-header img{width:68px;height:68px}
+}

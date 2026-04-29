@@ -1,0 +1,140 @@
+.calling-screen {
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  overflow: hidden;
+}
+
+.calling-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  margin-left: -15px;
+}
+
+.caller-info {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+
+.caller-avatar-wrapper {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.caller-avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin-top: 12px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  object-fit: cover;
+  z-index: 2;
+  position: relative;
+}
+
+/* Pulsing animation for the call */
+.pulse-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.caller-name {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 10px 0;
+}
+
+.call-status {
+  font-size: 18px;
+  opacity: 0.8;
+  letter-spacing: 1px;
+}
+
+.call-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+.call-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 15px;
+  padding: 20px 10px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.call-btn span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.call-btn svg {
+  font-size: 22px;
+}
+
+.call-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-5px);
+}
+
+.call-btn.active {
+  background: white;
+  color: #667eea;
+}
+
+.call-btn.end-call {
+  grid-column: span 3; /* Full width for end call */
+  background: #ff4b2b;
+  margin-top: 20px;
+  flex-direction: row;
+  justify-content: center;
+  padding: 15px;
+  border-radius: 50px;
+}
+
+.call-btn.end-call:hover {
+  background: #ff416c;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+  .caller-avatar {
+    width: 120px;
+    height: 120px;
+  }
+  .call-actions-grid {
+    gap: 15px;
+  }
+}
