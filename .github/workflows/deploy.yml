@@ -1,0 +1,33 @@
+name: Deploy Frontend
+on:
+  push:
+    branches: [ main ] # Change to 'master' if that's your branch name
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install and Build
+        run: |
+          cd frontend        # Enter the frontend folder first!
+          npm install
+          npm run build
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Points to the 'dist' folder inside 'frontend'
+          path: './frontend/dist' 
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
