@@ -19,8 +19,9 @@ jobs:
         run: |
           cd frontend
           npm install
-          chmod +x ./node_modules/.bin/vite # Essential for the build to run
-          npm run build
+          chmod +x ./node_modules/.bin/vite
+          # Adding the base flag here as a backup
+          npx vite build --base=/HeyBro/          
           
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
