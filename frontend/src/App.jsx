@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import axios from "./api/axiosConfig";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -88,7 +88,7 @@ function App() {
     if (!token) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS('https://heybro-backend.onrender.com/ws'),
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         client.subscribe('/topic/messages', (msg) => {
@@ -147,76 +147,78 @@ function App() {
     };
   }, [userData, pathname]);
 
-  if (loading) return <div>Loading...</div>; // 4. Prevent route "bouncing"
+  if (loading) return <div>Loading...</div>;
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          userData || localStorage.getItem("token")
-            ? <Navigate to="/dashboard" />
-            : <Login onLogin={handleLogin} userData={userData} />
-        }
+    <Router>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            userData || localStorage.getItem("token")
+              ? <Navigate to="/dashboard" />
+              : <Login onLogin={handleLogin} userData={userData} />
+          }
 
-      />
-      <Route path="/register" element={<Register />} />
+        />
+        <Route path="/register" element={<Register />} />
 
-      {/* protected routes */}
-      <Route
-        path="/dashboard" element={userData ? (<ChatDashboard userData={userData} 
-          onLogout={handleLogout} />
+        {/* protected routes */}
+        <Route
+          path="/dashboard" element={userData ? (<ChatDashboard userData={userData}
+            onLogout={handleLogout} />
           ) : (
             <Navigate to="/" />
           )
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          userData ? (
-            <Settings userData={userData} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
-      />
-      <Route
-        path="/contacts"
-        element={
-          userData ? (
-            <Contacts userData={userData} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
-      />
-      {/* `/users` intentionally shows the dashboard with the menu open; the
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            userData ? (
+              <Settings userData={userData} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/contacts"
+          element={
+            userData ? (
+              <Contacts userData={userData} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        {/* `/users` intentionally shows the dashboard with the menu open; the
             standalone Users component is no longer used. */}
-      <Route
-        path="/users"
-        element={
-          userData ? (
-            <ChatDashboard userData={userData} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          userData ? (
-            <Profile userData={userData} setUserData={setUserData} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
-      />
-      <Route path="/calling" element={<CallingDashboard />} />
-      {/* fallback */}
-      <Route path="*" element={userData ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
-      
-    </Routes>
+        <Route
+          path="/users"
+          element={
+            userData ? (
+              <ChatDashboard userData={userData} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            userData ? (
+              <Profile userData={userData} setUserData={setUserData} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route path="/calling" element={<CallingDashboard />} />
+        {/* fallback */}
+        <Route path="*" element={userData ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+
+      </Routes>
+    </Router>
   );
 }
 
