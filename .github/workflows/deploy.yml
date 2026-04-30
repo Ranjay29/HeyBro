@@ -12,6 +12,8 @@ jobs:
         run: |
           cd frontend
           npm install
+          # Grant execution permission to the vite binary
+          chmod +x ./node_modules/.bin/vite
           npm run build
 
       - name: Upload Artifact
