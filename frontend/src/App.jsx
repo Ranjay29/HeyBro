@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import axios from "./api/axiosConfig";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -149,7 +149,6 @@ function App() {
 
   if (loading) return <div>Loading...</div>;
   return (
-    <Router>
       <Routes>
         <Route
           path="/"
@@ -218,7 +217,6 @@ function App() {
         <Route path="*" element={userData ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
 
       </Routes>
-    </Router>
   );
 }
 
