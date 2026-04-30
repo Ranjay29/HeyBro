@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "http://localhost:8080/api"
+  baseURL: "https://ranjay29.github.io/HeyBro/"
 });
 
 // This is where we globally attach the JWT to every request

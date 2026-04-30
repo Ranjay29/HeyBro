@@ -14,17 +14,18 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173") // allow frontend
+@CrossOrigin(origins = {"http://localhost:5173", "https://ranjay29.github.io/HeyBro/"}) // allow frontend
 public class AuthController {
 
     private final AuthService authService;
     public UserService userService;
     public JwtUtil jwtUtil;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserService userService, JwtUtil jwtUtil) {
         this.authService = authService;
-    }
-
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
+   }
     @PostMapping("/register")
     public org.springframework.http.ResponseEntity<?> register(@RequestBody User user) {
         return org.springframework.http.ResponseEntity.ok(authService.register(user));
