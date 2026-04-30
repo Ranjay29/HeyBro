@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:5173", "https://ranjay29.github.io/HeyBro/"}) // allow frontend
+@CrossOrigin(origins = {"http://localhost:5173", "https://ranjay29.github.io"}) // allow frontend
 public class AuthController {
 
     private final AuthService authService;
