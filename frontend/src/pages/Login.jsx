@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import axios from "../api/axiosConfig";
 import { useNavigate, Link } from "react-router-dom";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; 
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import splash from "../assets/splash.png";
 import "./Auth.css";
 
 export default function Login({ onLogin, userData }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); 
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
 
@@ -18,7 +18,7 @@ export default function Login({ onLogin, userData }) {
   useEffect(() => {
     if (userData?.mobile && !localStorage.getItem("mobile")) {
       localStorage.setItem("mobile", userData.mobile);
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     }
   }, [userData]);
 
@@ -30,9 +30,9 @@ export default function Login({ onLogin, userData }) {
 
     try {
       setLoading(true);
-      const res = await axios.post("/auth/login", { 
-        email: email.trim(), 
-        password: password 
+      const res = await axios.post("/auth/login", {
+        email: email.trim(),
+        password: password
       });
 
       // ✅ Store real JWT
@@ -44,7 +44,7 @@ export default function Login({ onLogin, userData }) {
 
       // Wait 3 seconds then redirect
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       }, 3000);
 
     } catch (err) {
