@@ -19,9 +19,9 @@ jobs:
         run: |
           cd frontend
           npm install
-          # Vite build generates a 'dist' folder by default
+          chmod +x ./node_modules/.bin/vite # Essential for the build to run
           npm run build
-
+          
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
