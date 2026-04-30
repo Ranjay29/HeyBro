@@ -2,6 +2,13 @@ name: Deploy Frontend
 on:
   push:
     branches: [ main ]
+
+# Added permissions required for deploying to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,23 +19,22 @@ jobs:
         run: |
           cd frontend
           npm install
-          # Grant execution permission to the vite binary
-          chmod +x ./node_modules/.bin/vite
+          # Vite build generates a 'dist' folder by default
           npm run build
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './frontend/docs'
+          # Changed from 'docs' to 'dist' to match Vite's default output
+          path: './frontend/dist'
 
   deploy:
     needs: build
-    permissions:
-      pages: write
-      id-token: write
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
-    runs-on: ubuntu-latest
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
