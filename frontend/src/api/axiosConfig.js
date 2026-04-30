@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "https://ranjay29.github.io/HeyBro/"
+  baseURL: "https://heybro-backend.onrender.com"
 });
 
 // This is where we globally attach the JWT to every request
