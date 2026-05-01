@@ -28,8 +28,10 @@ export default function Login({ onLogin, userData }) {
       return;
     }
 
-    try {
+      setShowSplash(true);
       setLoading(true);
+
+    try {
       const res = await axios.post("/auth/login", {
         email: email.trim(),
         password: password
@@ -39,13 +41,11 @@ export default function Login({ onLogin, userData }) {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("mobile", res.data.mobile);
 
-      // 🚀 Trigger Splash Screen
-      setShowSplash(true);
 
       // Wait 3 seconds then redirect
       setTimeout(() => {
         navigate("/dashboard");
-      }, 3000);
+      }, 2000);
 
     } catch (err) {
       console.error(err);

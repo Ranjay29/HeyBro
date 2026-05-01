@@ -163,8 +163,9 @@ function App() {
 
         {/* protected routes */}
         <Route
-          path="/dashboard" element={userData ? (<ChatDashboard userData={userData}
-            onLogout={handleLogout} />
+          path="/dashboard" 
+          element={userData || localStorage.getItem("token") ? (
+            <ChatDashboard userData={userData} onLogout={handleLogout} />
           ) : (
             <Navigate to="/" />
           )
