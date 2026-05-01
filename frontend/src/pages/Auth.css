@@ -3,7 +3,7 @@ body {
   padding: 0;
   box-sizing: border-box;
   font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg,purple,#c01600,#d1ac04) ;
+  background: linear-gradient(135deg,rgb(61, 61, 255),rgb(87, 87, 233),#667eea,#8847ca,#6a0cc8,#9c53e5) ;
 }
 .splash-container {
   position: fixed;
@@ -11,7 +11,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #000; /* Match your GIF background */
+  background-color: #000; 
   display: flex;
   justify-content: center;
   align-items: center;
@@ -67,7 +67,7 @@ body {
 }
 
 .auth-card input {
-  width: 90%;
+  width: 100%;
   padding: 13px;
   margin-bottom: 18px;
   border-radius: 10px;
@@ -83,7 +83,7 @@ body {
 }
 
 .auth-card button {
-  width: 90%;
+  width: 100%;
   padding: 13px;
   background: #667eea;
   border: none;
@@ -120,11 +120,14 @@ body {
   display: flex;
   align-items: center;
 }
-
+.password-wrapper input {
+  width: 100%;
+  padding-right: 40px; /* Space for the toggle icon */
+}
 .toggle-password {
   position: absolute;
   font-size: x-large;
-  right: 1.5rem;
+  right: 1rem;
   top: 0.7rem;
   cursor: pointer;
   color: black;
@@ -132,7 +135,7 @@ body {
 /* Mobile Responsive */
 @media (max-width: 480px) {
   .auth-card {
-    width: 90%;
+    width: 100%;
     padding: 30px;
   }
 }
