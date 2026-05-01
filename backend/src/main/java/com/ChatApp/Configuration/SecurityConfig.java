@@ -40,7 +40,7 @@ public class SecurityConfig {
 	        .requestMatchers("/uploads/**").permitAll() // <--- ADD THIS LINE
 	        .requestMatchers("/api/auth/delete-account").authenticated()
 	        .requestMatchers("/api/users/**").hasAnyAuthority("USER")
-	        .anyRequest().authenticated()
+	        .anyRequest().authenticated() 
 	    )
 	    .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 	    return http.build();
