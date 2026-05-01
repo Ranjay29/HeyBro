@@ -28,8 +28,7 @@ export default function Login({ onLogin, userData }) {
       return;
     }
 
-      setShowSplash(true);
-      setLoading(true);
+    setLoading(true);
 
     try {
       const res = await axios.post("/auth/login", {
@@ -40,16 +39,21 @@ export default function Login({ onLogin, userData }) {
       // ✅ Store real JWT
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("mobile", res.data.mobile);
+      localStorage.setItem("userData", JSON.stringify(res.data));
 
+      setShowSplash(true);
 
-      // Wait 3 seconds then redirect
       setTimeout(() => {
+        if (onLogin) {
+        onLogin(res.data || res.data.user );
+        }
         navigate("/dashboard");
       }, 2000);
 
     } catch (err) {
       console.error(err);
-    } finally {
+      alert(err.response?.data?.message || "Login failed");
+      setShowSplash(false);
       setLoading(false);
     }
   };

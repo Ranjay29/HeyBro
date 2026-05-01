@@ -24,39 +24,37 @@ export default function Profile({ userData, setUserData, onLogout }) {
   }, [userData]);
 
   // Fetch latest user data from backend
-  useEffect(() => {
+useEffect(() => {
+    // 1. Check if we already have the data in props or local storage
+    const localData = localStorage.getItem('userData');
+    if (localData && !userData) {
+      const parsed = JSON.parse(localData);
+      setUserData(parsed);
+      setFormData(parsed);
+    } else if (userData) {
+      setFormData(userData);
+    }
+
+    // 2. Fetch the "Fresh" data (with the image) from backend
     const fetchUser = async () => {
       try {
         const response = await axios.get("/auth/me");
         const data = response.data;
 
-        // 1. Update React state (RAM handles large strings fine)
-        setUserData(data);
+        setUserData(data); // Update global state (includes image)
 
-        // 2. Remove the image before saving to localStorage
-        const { profileImage, ...lightweightData } = data;
-        localStorage.setItem('userData', JSON.stringify(lightweightData));
-
+        // Save lightweight version to cache
+        const { profileImage, ...lightData } = data;
+        localStorage.setItem('userData', JSON.stringify(lightData));
       } catch (err) {
-        if (err.name === 'QuotaExceededError') {
-          console.error("Local storage full! Image was too big for cache.");
-        }
+        console.error("Fetch error:", err);
       }
     };
 
-    // Check if we have data in localStorage to show immediately
-    const localData = localStorage.getItem('userData');
-    if (localData) {
-      setUserData(JSON.parse(localData));
-      setFormData(JSON.parse(localData));
-    }
-
-    // Only fetch if we have a token and NO user data yet
     if (localStorage.getItem("token")) {
       fetchUser();
     }
-  }, [setUserData]);
-
+  }, [setUserData]); // Only runs once or when setUserData changes
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({

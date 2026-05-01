@@ -35,11 +35,10 @@ function App() {
         .catch(() => {
           localStorage.removeItem("token");
           setUserData(null);
-          navigate("/chat");
         })
-        .finally(() => setLoading(false)); // 2. Stop loading when done
+        .finally(() => setLoading(false));
     } else {
-      setLoading(false); // No token, stop loading
+      setLoading(false);
     }
   }, []);
 
@@ -59,10 +58,12 @@ function App() {
   // callback coming from login component
   const handleLogin = (user) => {
     setUserData(user);
+    setLoading(false);
     try {
       localStorage.setItem('userData', JSON.stringify(user));
-    } catch { }
-    // redirection will be handled below in effect when userData changes
+    } catch (e) {
+      console.error("Error saving user data", e);
+    }
   };
 
   const normalizePhone = (phone) => {
@@ -77,147 +78,167 @@ function App() {
 
   useEffect(() => {
     if (!userData) return;
-
-    const currentUserMobile = normalizePhone(userData?.mobile || localStorage.getItem('mobile'));
-    if (!currentUserMobile) return;
-
-    const isDashboardRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/users');
-    if (isDashboardRoute) return; // dashboard already handles its own live updates
-
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const client = new Client({
-      webSocketFactory: () => new SockJS('https://heybro-backend.onrender.com/ws'),
-      connectHeaders: { Authorization: `Bearer ${token}` },
-      onConnect: () => {
-        client.subscribe('/topic/messages', (msg) => {
-          try {
-            const received = JSON.parse(msg.body);
-            const msgReceiver = normalizePhone(received.receiverMobile);
-            const msgSender = normalizePhone(received.senderMobile);
+    const currentUserMobile = normalizePhone(userData.mobile || userData.phone);
+    const isDashboardRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/users');
+    if (isDashboardRoute) return; // dashboard already handles its own live updates
 
-            if (msgReceiver !== currentUserMobile) return;
+    let isMounted = true;
+    let client = null;
 
-            const storageKey = `chats_${currentUserMobile}`;
-            const rawChats = localStorage.getItem(storageKey);
-            const parsedChats = rawChats ? JSON.parse(rawChats) : [];
-            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            let found = false;
-            const updatedChats = parsedChats.map(chat => {
-              const chatMobile = normalizePhone(chat.id || chat.mobile || chat.phone);
-              if (chatMobile === msgSender) {
-                found = true;
-                return {
-                  ...chat,
+    const connectionTimer = setTimeout(() => {
+      if (!isMounted) return;
+
+      client = new Client({
+        webSocketFactory: () => new SockJS('https://heybro-backend.onrender.com/ws'),
+        connectHeaders: { Authorization: `Bearer ${token}` },
+        onConnect: () => {
+          if (!isMounted) {
+            client.deactivate();
+            return;
+          }
+          console.log("Global WebSocket Connected");
+          client.subscribe('/topic/messages', (msg) => {
+            try {
+              const received = JSON.parse(msg.body);
+              const msgReceiver = normalizePhone(received.receiverMobile);
+              const msgSender = normalizePhone(received.senderMobile);
+
+              if (msgReceiver !== currentUserMobile) return;
+
+              const storageKey = `chats_${currentUserMobile}`;
+              const rawChats = localStorage.getItem(storageKey);
+              const parsedChats = rawChats ? JSON.parse(rawChats) : [];
+              const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              let found = false;
+              const updatedChats = parsedChats.map(chat => {
+                const chatMobile = normalizePhone(chat.id || chat.mobile || chat.phone);
+                if (chatMobile === msgSender) {
+                  found = true;
+                  return {
+                    ...chat,
+                    lastMessage: received.content,
+                    timestamp: now,
+                    unread: (chat.unread || 0) + 1,
+                  };
+                }
+                return chat;
+              });
+
+              if (!found) {
+                updatedChats.unshift({
+                  id: msgSender,
+                  mobile: msgSender,
+                  name: msgSender,
+                  avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(msgSender)}`,
                   lastMessage: received.content,
                   timestamp: now,
-                  unread: (chat.unread || 0) + 1,
-                };
+                  unread: 1,
+                });
               }
-              return chat;
-            });
 
-            if (!found) {
-              updatedChats.unshift({
-                id: msgSender,
-                mobile: msgSender,
-                name: msgSender,
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(msgSender)}`,
-                lastMessage: received.content,
-                timestamp: now,
-                unread: 1,
-              });
+              localStorage.setItem(storageKey, JSON.stringify(updatedChats));
+              window.dispatchEvent(new CustomEvent('chatStorageUpdate', {
+                detail: { user: currentUserMobile }
+              }));
+            } catch (err) {
+              console.error('Global message listener error:', err);
             }
+          });
+        }
+      }); client.activate();
+    }, 300);
 
-            localStorage.setItem(storageKey, JSON.stringify(updatedChats));
-            window.dispatchEvent(new CustomEvent('chatStorageUpdate', {
-              detail: { user: currentUserMobile }
-            }));
-          } catch (err) {
-            console.error('Global message listener error:', err);
-          }
-        });
-      }
-    });
-
-    client.activate();
     return () => {
-      if (client.active) client.deactivate();
+      isMounted = false;
+      clearTimeout(connectionTimer); // Cancel connection if user leaves quickly
+      if (client && client.active) {
+        client.deactivate();
+        console.log("Global WebSocket Deactivated");
+      }
     };
   }, [userData, pathname]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading && !userData) {
+    return (
+      <div className="loading-screen">
+        {/* This is what shows 'Loading HeyBro...' */}
+        <p>Loading HeyBro...</p>
+      </div>
+    );
+  }
+
   return (
-      <Routes>
-        <Route
-          path="/"
-          element={
-            userData || localStorage.getItem("token")
-              ? <Navigate to="/dashboard" />
-              : <Login onLogin={handleLogin} userData={userData} />
-          }
+    <Routes>
+      <Route
+        path="/"
+        element={userData || localStorage.getItem("token")
+          ? <Navigate to="/dashboard" />
+          : <Login onLogin={handleLogin} userData={userData} />
+        }
 
-        />
-        <Route path="/register" element={<Register />} />
+      />
+      <Route path="/register" element={<Register />} />
 
-        {/* protected routes */}
-        <Route
-          path="/dashboard" 
-          element={userData || localStorage.getItem("token") ? (
+      {/* protected routes */}
+      <Route
+        path="/dashboard"
+        element={userData || localStorage.getItem("token") ? (
+          <ChatDashboard userData={userData || JSON.parse(localStorage.getItem('userData'))} onLogout={handleLogout} />
+        ) : (
+          <Navigate to="/" />
+        )
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          userData ? (
+            <Settings userData={userData} onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/" />
+          )
+        }
+      />
+      <Route
+        path="/contacts"
+        element={
+          userData ? (
+            <Contacts userData={userData} onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/" />
+          )
+        }
+      />
+      {/* `/users` intentionally shows the dashboard with the menu open; the
+            standalone Users component is no longer used. */}
+      <Route
+        path="/users"
+        element={
+          userData ? (
             <ChatDashboard userData={userData} onLogout={handleLogout} />
           ) : (
             <Navigate to="/" />
           )
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            userData ? (
-              <Settings userData={userData} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route
-          path="/contacts"
-          element={
-            userData ? (
-              <Contacts userData={userData} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        {/* `/users` intentionally shows the dashboard with the menu open; the
-            standalone Users component is no longer used. */}
-        <Route
-          path="/users"
-          element={
-            userData ? (
-              <ChatDashboard userData={userData} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            userData ? (
-              <Profile userData={userData} setUserData={setUserData} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route path="/calling" element={<CallingDashboard />} />
-        {/* fallback */}
-        <Route path="*" element={userData ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          userData ? (
+            <Profile userData={userData} setUserData={setUserData} onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/" />
+          )
+        }
+      />
+      <Route path="/calling" element={<CallingDashboard />} />
+      {/* fallback */}
+      <Route path="*" element={userData ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />} />
 
-      </Routes>
+    </Routes>
   );
 }
 
