@@ -29,13 +29,12 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
-	    .cors(cors -> {})
 	    .csrf(csrf -> csrf.disable())
 	    .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
 	    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 	    .authorizeHttpRequests(auth -> auth
 	        .requestMatchers("/ws/**").permitAll()
-	        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+	        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/me").permitAll()
 	        .requestMatchers("/api/messages/upload").authenticated()
 	        .requestMatchers("/uploads/**").permitAll() // <--- ADD THIS LINE
 	        .requestMatchers("/api/auth/delete-account").authenticated()

@@ -18,7 +18,6 @@ import java.util.Collections;
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
-	@Autowired
     private final JwtUtil jwtUtil;
 	
 	public JwtRequestFilter(JwtUtil jwtUtil) {
@@ -32,7 +31,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_OK);
             return;
         }
 

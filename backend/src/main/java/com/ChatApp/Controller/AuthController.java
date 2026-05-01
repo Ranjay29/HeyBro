@@ -12,9 +12,9 @@ import com.ChatApp.Service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@CrossOrigin(origins = "https://ranjay29.github.io")
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:5173", "https://ranjay29.github.io"}) // allow frontend
 public class AuthController {
 
     private final AuthService authService;
