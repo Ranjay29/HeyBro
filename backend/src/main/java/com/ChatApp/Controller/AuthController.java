@@ -12,7 +12,7 @@ import com.ChatApp.Service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-@CrossOrigin(origins = "https://ranjay29.github.io")
+@CrossOrigin(origins = {"http://localhost:5173", "https://ranjay29.github.io"}) 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

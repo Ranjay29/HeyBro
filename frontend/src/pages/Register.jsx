@@ -16,7 +16,8 @@ export default function Register() {
       alert("Registration successful!");
       navigate("/");
     } catch (error) {
-      alert("Registration failed!");
+      console.log(error.response); // This will show you the real error in the console
+      alert("Registration failed: " + (error.response?.data?.message || "Check Console"));
     }
   };
 
