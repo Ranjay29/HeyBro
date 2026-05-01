@@ -66,7 +66,7 @@ useEffect(() => {
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      if (file.size > 5 * 1124 * 1124) {
+      if (file.size > 5 * 1024 * 1024) {
         alert("Image is too large. Please choose an image under 5MB.");
         return;
       }
