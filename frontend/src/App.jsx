@@ -30,7 +30,7 @@ function App() {
     if (token) {
       axios.get("/auth/me")
         .then((res) => {
-          setUserData(res.data.user || res.data);
+          setUserData(res.data);
         })
         .catch(() => {
           localStorage.removeItem("token");
@@ -58,12 +58,27 @@ function App() {
   // callback coming from login component
   const handleLogin = (user) => {
     setUserData(user);
-    setLoading(false);
     try {
       localStorage.setItem('userData', JSON.stringify(user));
     } catch (e) {
       console.error("Error saving user data", e);
     }
+
+    // Fetch complete user data from backend to ensure all fields are populated
+    axios.get("/auth/me")
+      .then((res) => {
+        const completeUserData = res.data;
+        setUserData(completeUserData);
+        try {
+          localStorage.setItem('userData', JSON.stringify(completeUserData));
+        } catch (e) {
+          console.error("Error saving complete user data", e);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch complete user data:", err);
+      })
+      .finally(() => setLoading(false));
   };
 
   const normalizePhone = (phone) => {

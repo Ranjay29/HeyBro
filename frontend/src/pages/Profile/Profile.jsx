@@ -7,6 +7,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [message, setMessage] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   // Initialize with empty strings so the inputs don't switch from uncontrolled to controlled
   const [formData, setFormData] = useState(userData || {
@@ -23,8 +24,19 @@ export default function Profile({ userData, setUserData, onLogout }) {
     }
   }, [userData]);
 
+  // Auto-clear message after 5 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage('')
+        setSaveSuccess(false)
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   // Fetch latest user data from backend
-useEffect(() => {
+  useEffect(() => {
     // 1. Check if we already have the data in props or local storage
     const localData = localStorage.getItem('userData');
     if (localData && !userData) {
@@ -76,6 +88,8 @@ useEffect(() => {
           ...formData,
           profileImage: event.target.result
         });
+        setMessage('')
+        setSaveSuccess(false)
       };
       reader.readAsDataURL(file)
     }
@@ -84,6 +98,13 @@ useEffect(() => {
   // Inside your fetchUser or handleSave function
   const handleSave = async () => {
     try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        mobile: formData.mobile,
+        profileImage: formData.profileImage
+      };
+
       const response = await axios.put("/users/update-profile", formData);
 
       // This updates the screen immediately
@@ -94,9 +115,18 @@ useEffect(() => {
       localStorage.setItem('userData', JSON.stringify(lightData));
 
       setIsEditing(false);
+      setSaveSuccess(true);
       setMessage("Profile updated perfectly!");
     } catch (err) {
       console.error("Save error:", err);
+      setSaveSuccess(false);
+      if (err.response?.status === 403) {
+        setMessage("Unauthorized: You don't have permission to update this profile");
+      } else if (err.response?.status === 401) {
+        setMessage("Session expired. Please log in again.");
+      } else {
+        setMessage(err.response?.data?.message || "Failed to update profile");
+      }
     }
   };
 
@@ -115,7 +145,11 @@ useEffect(() => {
       <div className="profile-content">
         <div className="profile-card">
           <div className="profile-image-section">
-            <img src={userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')} alt={userData.name || 'User'} className="profile-image" />
+            <img
+              src={formData.profileImage || userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')}
+              alt={userData.name || 'User'}
+              className="profile-image"
+            />
             {isEditing && (
               <label className="image-upload-label">
                 <span className="camera-icon">📷</span>
@@ -145,7 +179,11 @@ useEffect(() => {
                   <button className="dashboard-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
                 </div>
 
-                <button className="edit-btn" onClick={() => setIsEditing(true)}>
+                <button className="edit-btn" onClick={() => {
+                  setIsEditing(true);
+                  setMessage('');
+                  setSaveSuccess(false);
+                }}>
                   ✎ Edit Profile
                 </button>
                 <button className="logout-btn" onClick={() => {
@@ -204,7 +242,11 @@ useEffect(() => {
             )}
           </div>
 
-          {message && <div className="success-message">{message}</div>}
+          {message && (
+            <div className={`status-message ${saveSuccess ? 'success' : 'error'}`}>
+              {saveSuccess ? '✔️ ' : '⚠️ '}{message}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -39,12 +39,22 @@ public class AuthService {
 	    if (!match) {
 	        throw new RuntimeException("Invalid password");
 	    }
+	    
+	    // Ensure user has a role (default to USER if null)
+	    if (user.getRole() == null || user.getRole().isEmpty()) {
+	        user.setRole("USER");
+	        userRepository.save(user);
+	    }
+	    
 	    String token = jwtUtil.generateToken(user.getEmail());
-	    return Map.of(
-	        "token", token,
-	        "mobile", user.getMobile(),
-	        "role", user.getRole()
-	    );
+	    Map<String, Object> response = new HashMap<>();
+	    response.put("token", token);
+	    response.put("id", user.getId());
+	    response.put("name", user.getName());
+	    response.put("email", user.getEmail());
+	    response.put("mobile", user.getMobile());
+	    response.put("role", user.getRole());
+	    return response;
 	}
 	public Object register(User user) {
 	    if (userRepository.findByEmailIgnoreCase(user.getEmail()).isPresent()) {

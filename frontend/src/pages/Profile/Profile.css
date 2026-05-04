@@ -229,7 +229,7 @@
   background: #e0e0e0;
 }
 
-.success-message {
+.status-message {
   position: fixed;
   top: 24px;
   right: 24px;
@@ -239,6 +239,14 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   animation: slideInRight 0.3s ease;
+}
+
+.status-message.error {
+  background: #f44336;
+}
+
+.status-message.success {
+  background: #4caf50;
 }
 
 @keyframes slideInRight {

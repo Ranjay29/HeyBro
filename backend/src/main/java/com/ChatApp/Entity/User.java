@@ -14,6 +14,9 @@ public class User {
     private String password;
     private String mobile;
     private String role;
+    
+    @Column(columnDefinition = "TEXT")
+    private String profileImage;
 
     // ✅ GETTERS & SETTERS
     public Long getId() {
@@ -51,5 +54,11 @@ public class User {
     }
     public void setRole(String role) {
         this.role = role; 
+    }
+    public String getProfileImage() {
+        return profileImage;
+    }
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
     }
 }

@@ -18,6 +18,10 @@ public class UserService {
 		return userRepository.findAll();
 	}
 
+	public User updateProfile(User user) {
+		return userRepository.save(user);
+	}
+
 	public void deleteByEmail(String email) {
 		
 	}

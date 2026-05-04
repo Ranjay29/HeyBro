@@ -43,15 +43,19 @@ public class AuthController {
             return org.springframework.http.ResponseEntity.status(401).body("Unauthorized");
         }
 
-        // auth.getName() extracts the email/subject from your JWT token
-        String email = auth.getName(); 
-        
         try {
-            // Fetch the actual User entity from the DB
-            User user = authService.findByEmail(email);
+            // Get the User object directly from the authentication principal
+            User user = (User) auth.getPrincipal();
+            
+            // Ensure user has a role (default to USER if null)
+            if (user.getRole() == null || user.getRole().isEmpty()) {
+                user.setRole("USER");
+                userService.updateProfile(user);
+            }
+            
             return org.springframework.http.ResponseEntity.ok(user);
-        } catch (RuntimeException e) {
-            return org.springframework.http.ResponseEntity.status(404).body(e.getMessage());
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.status(404).body("User not found: " + e.getMessage());
         }
     }
     @DeleteMapping("/delete-account")

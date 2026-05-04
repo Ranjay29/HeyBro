@@ -43,12 +43,13 @@ export default function Login({ onLogin, userData }) {
 
       setShowSplash(true);
 
+      // Give the splash screen time to render before navigating
       setTimeout(() => {
         if (onLogin) {
-        onLogin(res.data || res.data.user );
+          onLogin(res.data);
         }
         navigate("/dashboard");
-      }, 2000);
+      }, 1500);
 
     } catch (err) {
       console.error(err);

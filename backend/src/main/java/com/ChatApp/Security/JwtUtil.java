@@ -14,30 +14,31 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    // 🔐 Secret key (keep this safe, move to application.properties in real apps)
     private final String SECRET = "sA/5xpndGAMozFcjszCXulKN+CgUGt0Oih4QqeCJ7AY=";
 
-    // ⏱ Token validity (10 hours)
     private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10;
- 
-    // Generate signing key
+
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    // 🔹 Generate Token
-    public String generateToken(String username) {
+    // 🔹 Generate Token (use EMAIL only)
+    public String generateToken(String email) {
         return Jwts.builder()
-                .setSubject(username) // mobile or email
-                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setSubject(email)
+                .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // 🔹 Extract Username
-    public String extractUsername(String token) {
+    // 🔹 Extract Email (THIS IS THE ONLY METHOD)
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public String extractUsername(String token) {
+        return extractEmail(token);
     }
 
     // 🔹 Extract Expiration
@@ -45,13 +46,13 @@ public class JwtUtil {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    // 🔹 Extract Specific Claim
+    // 🔹 Extract Claims
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
         final Claims claims = extractAllClaims(token);
         return resolver.apply(claims);
     }
 
-    // 🔹 Extract All Claims
+    // 🔹 Parse token
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
@@ -60,19 +61,14 @@ public class JwtUtil {
                 .getBody();
     }
 
-    // 🔹 Check if token expired
+    // 🔹 Check expiry
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    // 🔹 Validate Token
-    public boolean validateToken(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+    // 🔹 Validate token
+    public boolean validateToken(String token, String email) {
+        final String extractedEmail = extractEmail(token);
+        return (extractedEmail.equals(email) && !isTokenExpired(token));
     }
-
-	public String extractEmail(String token) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
