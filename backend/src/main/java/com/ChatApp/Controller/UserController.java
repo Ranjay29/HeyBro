@@ -50,27 +50,36 @@ public class UserController {
         return userRepository.findByMobileIn(mobiles);
     }
 
-    @PutMapping("/update-profile")
-    @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<?> updateProfile(@RequestBody User updatedUser, @AuthenticationPrincipal User currentUser) {
-        if (currentUser == null) {
-            return ResponseEntity.status(401).body("Unauthorized");
+@PutMapping("/update-profile")
+public ResponseEntity<?> updateProfile(
+        @RequestParam("name") String name,
+        @RequestParam("mobile") String mobile,
+        @RequestParam(value = "file", required = false) MultipartFile file,
+        @AuthenticationPrincipal User currentUser) throws IOException {
+
+    User user = userRepository.findById(currentUser.getId())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    user.setName(name);
+    user.setMobile(mobile);
+
+    if (file != null && !file.isEmpty()) {
+
+        // delete old image (optional but good)
+        if (user.getProfileImage() != null) {
+            Path oldPath = Paths.get("uploads", user.getProfileImage());
+            Files.deleteIfExists(oldPath);
         }
 
-        User userToUpdate = userRepository.findById(currentUser.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        String fileName = "user_" + user.getId() + "_" + System.currentTimeMillis() + ".jpg";
 
-        if (updatedUser.getName() != null && !updatedUser.getName().isEmpty()) {
-            userToUpdate.setName(updatedUser.getName());
-        }
-        if (updatedUser.getMobile() != null && !updatedUser.getMobile().isEmpty()) {
-            userToUpdate.setMobile(updatedUser.getMobile());
-        }
-        if (updatedUser.getProfileImage() != null && !updatedUser.getProfileImage().isEmpty()) {
-            userToUpdate.setProfileImage(updatedUser.getProfileImage());
-        }
+        Path path = Paths.get("uploads", fileName);
+        Files.write(path, file.getBytes());
 
-        User updated = userService.updateProfile(userToUpdate);
-        return ResponseEntity.ok(updated);
+        user.setProfileImage(fileName);
     }
-}
+
+    userRepository.save(user);
+
+    return ResponseEntity.ok(user);
+}}

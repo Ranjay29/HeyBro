@@ -45,7 +45,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             String path = Paths.get("uploads").toAbsolutePath().toUri().toString();
             
             registry.addResourceHandler("/uploads/**")
-                    .addResourceLocations(path); // Points exactly to the full path on your PC        
+                    .addResourceLocations("file:uploads/");    
             }
     }
 }

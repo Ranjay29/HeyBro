@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Cropper from 'react-easy-crop'
 import axios from '../../api/axiosConfig'
 import './Profile.css'
 
 export default function Profile({ userData, setUserData, onLogout }) {
   const navigate = useNavigate()
+
   const [isEditing, setIsEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -17,14 +19,19 @@ export default function Profile({ userData, setUserData, onLogout }) {
     profileImage: ''
   });
 
-  // Add this useEffect to sync formData whenever userData (from props or fetch) updates
+  const [showPreview, setShowPreview] = useState(false)
+
+  const [imageSrc, setImageSrc] = useState(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+
   useEffect(() => {
     if (userData) {
       setFormData(userData);
     }
   }, [userData]);
 
-  // Auto-clear message after 5 seconds
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
@@ -37,42 +44,22 @@ export default function Profile({ userData, setUserData, onLogout }) {
 
   // Fetch latest user data from backend
   useEffect(() => {
-    // 1. Check if we already have the data in props or local storage
-    const localData = localStorage.getItem('userData');
-    if (localData && !userData) {
-      const parsed = JSON.parse(localData);
-      setUserData(parsed);
-      setFormData(parsed);
-    } else if (userData) {
-      setFormData(userData);
-    }
+    if (!userData && localStorage.getItem("token")) {
+      const fetchUser = async () => {
+        try {
+          const response = await axios.get("/auth/me");
+          setUserData(response.data);
+        } catch (err) {
+          console.error("Fetch error:", err);
+        }
+      };
 
-    // 2. Fetch the "Fresh" data (with the image) from backend
-    const fetchUser = async () => {
-      try {
-        const response = await axios.get("/auth/me");
-        const data = response.data;
-
-        setUserData(data); // Update global state (includes image)
-
-        // Save lightweight version to cache
-        const { profileImage, ...lightData } = data;
-        localStorage.setItem('userData', JSON.stringify(lightData));
-      } catch (err) {
-        console.error("Fetch error:", err);
-      }
-    };
-
-    if (localStorage.getItem("token")) {
       fetchUser();
     }
-  }, [setUserData]); // Only runs once or when setUserData changes
+  }, []);
+
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleImageChange = (e) => {
@@ -82,35 +69,62 @@ export default function Profile({ userData, setUserData, onLogout }) {
         alert("Image is too large. Please choose an image under 5MB.");
         return;
       }
+
       const reader = new FileReader()
-      reader.onload = (event) => {
-        setFormData({
-          ...formData,
-          profileImage: event.target.result
-        });
-        setMessage('')
-        setSaveSuccess(false)
-      };
+      reader.onload = () => setImageSrc(reader.result)
       reader.readAsDataURL(file)
     }
   };
 
-  // Inside your fetchUser or handleSave function
+  const getCroppedImg = async (imageSrc, crop) => {
+    const image = new Image()
+    image.src = imageSrc
+
+    await new Promise((resolve) => (image.onload = resolve))
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+
+    canvas.width = crop.width
+    canvas.height = crop.height
+
+    ctx.drawImage(
+      image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      crop.width,
+      crop.height
+    )
+
+    return canvas.toDataURL('image/jpeg')
+  }
+
+  const handleCropSave = async () => {
+    const cropped = await getCroppedImg(imageSrc, croppedAreaPixels);
+
+    setFormData(prev => ({
+      ...prev,
+      profileImage: cropped
+    }));
+
+    setUserData(prev => ({
+      ...prev,
+      profileImage: cropped
+    }));
+
+    setImageSrc(null);
+  };
+
   const handleSave = async () => {
     try {
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.mobile,
-        // profileImage: formData.profileImage
-      };
+      setUserData(formData);
 
       const response = await axios.put("/users/update-profile", formData);
-
-      // This updates the screen immediately
       setUserData(response.data);
-
-      // This saves to the browser CACHE (without the heavy image)
       const { profileImage, ...lightData } = response.data;
       localStorage.setItem('userData', JSON.stringify(lightData));
 
@@ -118,15 +132,8 @@ export default function Profile({ userData, setUserData, onLogout }) {
       setSaveSuccess(true);
       setMessage("Profile updated perfectly!");
     } catch (err) {
-      console.error("Save error:", err);
       setSaveSuccess(false);
-      if (err.response?.status === 403) {
-        setMessage("Unauthorized: You don't have permission to update this profile");
-      } else if (err.response?.status === 401) {
-        setMessage("Session expired. Please log in again.");
-      } else {
-        setMessage(err.response?.data?.message || "Failed to update profile");
-      }
+      setMessage(err.response?.data || "Failed to update profile");
     }
   };
 
@@ -146,9 +153,11 @@ export default function Profile({ userData, setUserData, onLogout }) {
         <div className="profile-card">
           <div className="profile-image-section">
             <img
-              src={formData.profileImage || userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')}
+              src={
+                formData.profileImage || userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')}
               alt={userData.name || 'User'}
               className="profile-image"
+              onClick={() => setShowPreview(true)}
             />
             {isEditing && (
               <label className="image-upload-label">
@@ -157,6 +166,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
               </label>
             )}
           </div>
+
 
           <div className="profile-info">
             {!isEditing ? (
@@ -245,6 +255,31 @@ export default function Profile({ userData, setUserData, onLogout }) {
           {message && (
             <div className={`status-message ${saveSuccess ? 'success' : 'error'}`}>
               {saveSuccess ? '✔️ ' : '⚠️ '}{message}
+            </div>
+          )}
+
+          {showPreview && (
+            <div className="modal" onClick={() => setShowPreview(false)}>
+              <button className="close-preview" onClick={() => setShowPreview(false)}>✕</button>
+              <img src={formData.profileImage} className="preview-image" />
+            </div>
+          )}
+
+          {imageSrc && (
+            <div className="crop-modal">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(croppedArea, croppedPixels) =>
+                  setCroppedAreaPixels(croppedPixels)
+                }
+              />
+              <button onClick={handleCropSave}>Save Crop</button>
+              
             </div>
           )}
         </div>

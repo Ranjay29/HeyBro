@@ -14,8 +14,6 @@ public class User {
     private String password;
     private String mobile;
     private String role;
-    
-    @Column(columnDefinition = "TEXT")
     private String profileImage;
 
     // ✅ GETTERS & SETTERS
