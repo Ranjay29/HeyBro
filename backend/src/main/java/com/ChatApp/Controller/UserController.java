@@ -29,7 +29,7 @@ public class UserController {
     private UserRepository userRepository;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_USER','USER')")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public Object getAllUsers(@AuthenticationPrincipal User currentUser) {
         if (currentUser == null) {
             return ResponseEntity.status(401).body("Unauthorized");
@@ -44,14 +44,14 @@ public class UserController {
     }
 
     @PostMapping("/lookup")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER','USER')")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public List<User> lookupUsers(@RequestBody Map<String, List<String>> request) {
         List<String> mobiles = request.get("mobiles");
         return userRepository.findByMobileIn(mobiles);
     }
 
     @PutMapping("/update-profile")
-    @PreAuthorize("hasAnyAuthority('ROLE_USER','USER')")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<?> updateProfile(@RequestBody User updatedUser, @AuthenticationPrincipal User currentUser) {
         if (currentUser == null) {
             return ResponseEntity.status(401).body("Unauthorized");

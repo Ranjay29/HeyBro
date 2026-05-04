@@ -102,7 +102,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
         name: formData.name,
         email: formData.email,
         mobile: formData.mobile,
-        profileImage: formData.profileImage
+        // profileImage: formData.profileImage
       };
 
       const response = await axios.put("/users/update-profile", formData);
