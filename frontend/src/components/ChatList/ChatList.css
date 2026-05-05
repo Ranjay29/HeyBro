@@ -127,11 +127,11 @@
   text-align: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-radius: 12px; /* Smoother pill shape */
+  border-radius: 12px; 
   font-size: 12px;
   font-weight: bold;
-  min-width: 20px;
-  height: 16px;
+  min-width: 25px;
+  height: 18px;
   margin: auto;
   box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 }

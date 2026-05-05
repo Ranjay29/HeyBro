@@ -21,8 +21,11 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
 
   useEffect(() => { onSendMessageRef.current = onSendMessage; }, [onSendMessage]);
 
-  const sendAudio = useRef(new Audio('/sounds/send.mp3'));
-  const receiveAudio = useRef(new Audio('/sounds/receive.mp3'));
+  const VITE_API_URL = import.meta.env.VITE_API_URL || "https://heybro-backend.onrender.com/api" || "http://localhost:8080/api";
+  const backendOrigin = VITE_API_URL.replace(/\/api\/?$/, '');
+  const audioBase = import.meta.env.BASE_URL?.replace(/\/$/, '') || '';
+  const sendAudio = useRef(new Audio(`${audioBase}/sounds/send.mp3`));
+  const receiveAudio = useRef(new Audio(`${audioBase}/sounds/receive.mp3`));
 
   const normalizePhone = useCallback((phone) => {
     if (!phone) return '';
@@ -53,7 +56,8 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
   // --- NEW: FORCED DOWNLOAD LOGIC ---
   const handleDownload = async (url, fileName) => {
     try {
-      const response = await fetch(url);
+      const fileUrl = url.startsWith('http') ? url : `${backendOrigin}${url}`;
+      const response = await fetch(fileUrl);
 
       // ✅ Check if the response is actually okay
       if (!response.ok) throw new Error("File not found on server");
@@ -72,7 +76,8 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
     } catch (error) {
       console.error("Download failed:", error);
       // If the fetch fails, try opening in a new tab as a last resort
-      window.open(url, '_blank');
+      const fileUrl = url.startsWith('http') ? url : `${backendOrigin}${url}`;
+      window.open(fileUrl, '_blank');
     }
   };
 
@@ -117,7 +122,7 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
     const token = localStorage.getItem("token");
 
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+      webSocketFactory: () => new SockJS(`${backendOrigin}/ws`),
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         client.subscribe("/topic/messages", (msg) => {
@@ -211,7 +216,6 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
         status: 'SENT',
         type: 'file',
         fileName: fileMessage.fileName || file.name,
-        fileUrl: fileMessage.content
       };
 
       setLiveMessages(prev => [...prev, localMsg]);

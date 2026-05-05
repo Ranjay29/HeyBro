@@ -33,12 +33,14 @@ public class ChatController {
         message.setReceiverMobile(messageDTO.getReceiverMobile());
         message.setSenderMobile(messageDTO.getSenderMobile());
         message.setContent(messageDTO.getContent());
+        message.setMessageType(messageDTO.getMessageType());
+        message.setFileName(messageDTO.getFileName());
         message.setTimestamp(LocalDateTime.now());
         message.setStatus("delivered"); // Important for your 'seen' query
 
         chatMessageRepository.save(message);
 
-        messagingTemplate.convertAndSend("/topic/messages",message);        
+        messagingTemplate.convertAndSend("/topic/messages", message);
     }
     
  // NEW: Handle Real-time Call Routing

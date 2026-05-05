@@ -7,5 +7,20 @@ export default defineConfig({
     outDir: 'dist', // Tells Vite to build into the 'dist' folder
     emptyOutDir: true, // Cleans the folder before each build
   },
-  base: '/HeyBro/', 
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: 'http://localhost:8080',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+  base: '/HeyBro/',
 })

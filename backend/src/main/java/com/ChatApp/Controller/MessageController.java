@@ -3,18 +3,19 @@ package com.ChatApp.Controller;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.ChatApp.Entity.ChatMessage;
 import com.ChatApp.Modal.ChatSummaryDto;
 import com.ChatApp.Repository.ChatMessageRepository;
-import org.springframework.web.multipart.MultipartFile;
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -84,24 +85,31 @@ public class MessageController {
             File dir = new File(uploadDir);
             if (!dir.exists()) dir.mkdirs();
 
-            String fileName =  file.getOriginalFilename();
+            String fileName = file.getOriginalFilename();
             File destination = new File(dir.getAbsolutePath() + File.separator + fileName);
             file.transferTo(destination);
 
-            String fileUrl = "📁 " + fileName;
+            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/")
+                    .path(fileName)
+                    .toUriString();
 
             ChatMessage fileMsg = new ChatMessage();
             fileMsg.setSenderMobile(senderMobile);
             fileMsg.setReceiverMobile(receiverMobile);
             fileMsg.setContent(fileUrl);
             fileMsg.setMessageType("file");
-            fileMsg.setFileName(file.getOriginalFilename());
+            fileMsg.setFileName(fileName);
             fileMsg.setTimestamp(LocalDateTime.now());
             fileMsg.setStatus("delivered"); // Important for your 'seen' query
             
             chatMessageRepository.save(fileMsg);
             Map<String, Object> response = new HashMap<>();
-
+            response.put("fileName", fileName);
+            response.put("content", fileUrl);
+            response.put("messageType", "file");
+            response.put("senderMobile", senderMobile);
+            response.put("receiverMobile", receiverMobile);
 
             return ResponseEntity.ok(response);
         } catch (IOException e) {

@@ -101,13 +101,16 @@ function App() {
     if (isDashboardRoute) return; // dashboard already handles its own live updates
 
     let isMounted = true;
+    const VITE_API_URL = import.meta.env.VITE_API_URL || "https://heybro-backend.onrender.com/api";
+    const backendOrigin = VITE_API_URL.replace(/\/api\/?$/, '');
+
     let client = null;
 
     const connectionTimer = setTimeout(() => {
       if (!isMounted) return;
 
       client = new Client({
-        webSocketFactory: () => new SockJS('https://heybro-backend.onrender.com/ws'),
+        webSocketFactory: () => new SockJS(`${backendOrigin}/ws`),
         connectHeaders: { Authorization: `Bearer ${token}` },
         onConnect: () => {
           if (!isMounted) {
