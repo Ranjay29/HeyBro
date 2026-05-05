@@ -52,6 +52,9 @@ export default function Settings({ userData, onLogout }) {
         </button>
         <h1>Settings</h1>
         <div className="header-spacer"></div>
+        <button className="help-btn" onClick={() => navigate('/help')} title="Help">
+        🎧
+        </button>
       </div>
 
       <div className="settings-content">

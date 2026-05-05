@@ -16,7 +16,7 @@
 }
 
 .app-name {
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 700;
   background: linear-gradient(135deg, #4d6cf6 0%, #764ba2 100%);
   -webkit-background-clip: text;
@@ -58,17 +58,18 @@
 @media (max-width: 480px) {
   .header {
     padding: 12px 16px;
-    height: 60px;
+    height: 70px;
   }
 
   .app-name {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .profile-pic {
-    width: 40px;
-    height: 40px;
+    width: 55px;
+    height: 55px;
     border-width: 2px;
+    margin-top: 5px;
   }
 
   .user-name {
