@@ -7,6 +7,7 @@ import { FaPhone, FaVideo } from "react-icons/fa";
 import EmojiPicker from 'emoji-picker-react';
 import { IoClose, IoCheckmark, IoCheckmarkDone, IoDownloadOutline } from "react-icons/io5"; // Added Download Icon
 import axios from "../../api/axiosConfig";
+import { getProfileImageUrl } from '../../utils/getProfileImageUrl';
 
 export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose }) {
   const navigate = useNavigate();
@@ -89,12 +90,13 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
     const receiverMobile = normalizePhone(chat.mobile || chat.phone || chat.id);
 
     const fetchHistory = async () => {
-      
+
       try {
         const res = await axios.get(`/messages/${currentUser}/${receiverMobile}`);
         if (isMounted) {
           const formatted = res.data.map(msg => {
-            const isFile = msg.messageType === 'file';
+            const isFile = msg.messageType === 'file' || (typeof msg.content === "string" &&
+              msg.content.match(/\.(jpg|jpeg|png|pdf|docx|zip|mp4)$/i));
             return {
               id: msg.id || Math.random(),
               text: isFile ? "" : msg.content,
@@ -147,6 +149,20 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
               fileName: received.fileName,
             }]);
             onSendMessageRef.current(isFile ? fileLabel : received.content, msgSender, false);
+          }
+        });
+
+        // Subscribe to profile updates
+        client.subscribe("/topic/profile-updates", (msg) => {
+          const updatedUser = JSON.parse(msg.body);
+          const updatedMobile = normalizePhone(updatedUser.mobile);
+          console.log('Received profile update:', updatedUser);
+
+          // Update chat data if this user is in our chat list
+          if (updatedMobile !== currentUser) {
+            // This will trigger a re-render with updated profile image
+            // The parent component (ChatDashboard) will need to handle this
+            window.dispatchEvent(new CustomEvent('profileUpdated', { detail: updatedUser }));
           }
         });
       },
@@ -248,7 +264,13 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
     <div className={`chat-window ${isHighlight ? 'window-highlight' : ''}`}>
       <div className="chat-window-header">
         <div className="chat-header-info" onClick={() => onOpenProfile(chat)}>
-          <img src={chat.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.name)}`} alt="avatar" />
+          <img
+            src={getProfileImageUrl(
+              chat.avatar || chat.profileImage,
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.name)}`
+            )}
+            alt="avatar"
+          />
           <div>
             <h2 className="chat-header-name">{chat.name}</h2>
             <p className="chat-header-status">Online</p>

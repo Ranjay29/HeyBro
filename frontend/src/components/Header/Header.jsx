@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { getProfileImageUrl } from '../../utils/getProfileImageUrl'
 import './Header.css'
 
 export default function Header({ userData, onLogout }) {
@@ -17,10 +18,10 @@ export default function Header({ userData, onLogout }) {
           title="Profile"
         >
           <img
-            src={
-              userData?.profileImage ||
+            src={getProfileImageUrl(
+              userData?.profileImage,
               "https://ui-avatars.com/api/?name=" + (userData?.name || 'User')
-            }
+            )}
             alt="Profile"
             className="profile-pic"
           />

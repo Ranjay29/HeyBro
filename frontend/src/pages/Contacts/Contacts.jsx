@@ -52,7 +52,7 @@ export default function Contacts({ userData, onLogout }) {
     c.phone.includes(searchTerm)
   )
 
-  const handleStartChat = (contact) => {
+  const handleStartChat = async (contact) => {
     const mobile = normalizePhone(contact.phone || contact.mobile || contact.id);
 
     // Ensure we are looking in the CURRENT user's chat list
@@ -66,22 +66,48 @@ export default function Contacts({ userData, onLogout }) {
       return;
     }
 
-    const newChat = {
-      id: mobile,
-      name: contact.name,
-      mobile: mobile,
-      phone: mobile,
-      avatar: contact.avatar || `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(contact.name)}`,
-      lastMessage: '',
-      time: 'New'
-    };
+    try {
+      // Fetch user data to get current profile image
+      const res = await axios.post('/users/lookup', { mobiles: [mobile] });
+      const userData = res.data && res.data.length > 0 ? res.data[0] : null;
 
-    chats.push(newChat);
-    localStorage.setItem(CHATS_KEY, JSON.stringify(chats));
+      const newChat = {
+        id: mobile,
+        name: contact.name,
+        mobile: mobile,
+        phone: mobile,
+        profileImage: userData?.profileImage || null,
+        avatar: contact.avatar || `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(contact.name)}`,
+        lastMessage: '',
+        time: 'New'
+      };
 
-    navigate('/dashboard', {
-      state: { selectedChat: newChat }
-    });
+      chats.push(newChat);
+      localStorage.setItem(CHATS_KEY, JSON.stringify(chats));
+
+      navigate('/dashboard', {
+        state: { selectedChat: newChat }
+      });
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      // Fallback to creating chat without profile image
+      const newChat = {
+        id: mobile,
+        name: contact.name,
+        mobile: mobile,
+        phone: mobile,
+        avatar: contact.avatar || `https://api.dicebear.com/6.x/initials/svg?seed=${encodeURIComponent(contact.name)}`,
+        lastMessage: '',
+        time: 'New'
+      };
+
+      chats.push(newChat);
+      localStorage.setItem(CHATS_KEY, JSON.stringify(chats));
+
+      navigate('/dashboard', {
+        state: { selectedChat: newChat }
+      });
+    }
   };
 
   const handleAddContact = () => {

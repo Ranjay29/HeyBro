@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axiosConfig';
+import { getProfileImageUrl } from '../../utils/getProfileImageUrl';
 import './Users.css';
 
 export default function Users({ userData }) {
@@ -83,7 +84,10 @@ export default function Users({ userData }) {
               onClick={() => handleClick(u)}
             >
               <img
-                src={u.profileImage || 'https://via.placeholder.com/40'}
+                src={getProfileImageUrl(
+                  u.profileImage,
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}`
+                )}
                 alt={u.name}
                 className="user-avatar"
               />

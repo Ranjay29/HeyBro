@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getProfileImageUrl } from '../../utils/getProfileImageUrl';
 import "./ChatList.css";
 
 export default function ChatList({ chats, selectedChat, onSelectChat, onDeleteChat, onOpenProfile, lastMessage }) {
@@ -27,7 +28,10 @@ export default function ChatList({ chats, selectedChat, onSelectChat, onDeleteCh
           >
             <div className="chat-item-left">
               <img
-                src={chat.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.name)}`}
+                src={getProfileImageUrl(
+                  chat.avatar || chat.profileImage,
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.name)}`
+                )}
                 alt={chat.name}
                 className="chat-avatar"
                 onClick={(e) => { e.stopPropagation(); onOpenProfile && onOpenProfile(chat) }}
