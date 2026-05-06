@@ -40,7 +40,8 @@ public class SecurityConfig {
             .requestMatchers("/api/messages/upload").authenticated()
             .requestMatchers("/uploads/**").permitAll()
             .requestMatchers("/api/auth/delete-account").authenticated()
-            .requestMatchers("/api/users/**").hasAuthority("ROLE_USER")
+            .requestMatchers("/api/users/update-profile").authenticated()
+            .requestMatchers("/api/users/**").authenticated()
             .anyRequest().authenticated() 
         )
         .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);

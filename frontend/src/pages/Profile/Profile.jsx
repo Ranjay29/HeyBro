@@ -4,6 +4,15 @@ import Cropper from 'react-easy-crop'
 import axios from '../../api/axiosConfig'
 import './Profile.css'
 
+// Utility helper to convert base64 data url to a real File blob
+const dataURLtoBlob = (dataurl) => {
+  let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+    bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
 export default function Profile({ userData, setUserData, onLogout }) {
   const navigate = useNavigate()
 
@@ -78,9 +87,14 @@ export default function Profile({ userData, setUserData, onLogout }) {
 
   const getCroppedImg = async (imageSrc, crop) => {
     const image = new Image()
+
+    // Set up the listener FIRST
+    const imageLoaded = new Promise((resolve) => (image.onload = resolve))
+
+    // Set the source SECOND
     image.src = imageSrc
 
-    await new Promise((resolve) => (image.onload = resolve))
+    await imageLoaded
 
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -122,8 +136,26 @@ export default function Profile({ userData, setUserData, onLogout }) {
   const handleSave = async () => {
     try {
       setUserData(formData);
+      const token = localStorage.getItem("token");
 
-      const response = await axios.put("/users/update-profile", formData);
+      const data = new FormData();
+      // Use fallback empty strings to ensure parameters are never missing/undefined
+      data.append("name", formData.name || "");
+      data.append("email", formData.email || "");
+      data.append("mobile", formData.mobile || "");
+
+      if (formData.profileImage && formData.profileImage.startsWith("data:")) {
+        const imageBlob = dataURLtoBlob(formData.profileImage);
+        data.append("file", imageBlob, "profile.jpg");
+      }
+
+      const response = await axios.put("/users/update-profile", data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setUserData(response.data);
       const { profileImage, ...lightData } = response.data;
       localStorage.setItem('userData', JSON.stringify(lightData));
@@ -133,7 +165,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
       setMessage("Profile updated perfectly!");
     } catch (err) {
       setSaveSuccess(false);
-      setMessage(err.response?.data || "Failed to update profile");
+      setMessage(err.response?.data?.message || err.response?.data || "Failed to update profile");
     }
   };
 
@@ -279,7 +311,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
                 }
               />
               <button onClick={handleCropSave}>Save Crop</button>
-              
+
             </div>
           )}
         </div>
