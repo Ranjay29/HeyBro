@@ -19,15 +19,18 @@ instance.interceptors.request.use(
       // Don't set Content-Type for FormData - browser will add boundary
       if (config.headers) {
         delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
       }
       if (config.headers?.common) {
         delete config.headers.common['Content-Type'];
+        delete config.headers.common['content-type'];
       }
       if (config.headers?.post) {
         delete config.headers.post['Content-Type'];
+        delete config.headers.post['content-type'];
       }
     }
-    
+
     console.log("Request headers:", config.headers);
     
     return config;

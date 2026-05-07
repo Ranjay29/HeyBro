@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Cropper from 'react-easy-crop'
 import axios from '../../api/axiosConfig'
+import { getProfileImageUrl } from '../../utils/getProfileImageUrl'
 import './Profile.css'
 
 // Utility helper to convert base64 data url to a real File blob
@@ -36,6 +37,17 @@ export default function Profile({ userData, setUserData, onLogout }) {
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
 
+  const imageValue =
+    formData.profileImage || userData?.profileImage || "";
+
+  const profileImageSrc =
+    imageValue.startsWith("data:image")
+      ? imageValue
+      : getProfileImageUrl(
+        imageValue,
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || "User")}`
+      );
+
   useEffect(() => {
     if (userData) {
       setFormData(userData);
@@ -59,7 +71,11 @@ export default function Profile({ userData, setUserData, onLogout }) {
       const fetchUser = async () => {
         try {
           const response = await axios.get("/auth/me");
-          setUserData(response.data);
+          setUserData({
+            ...response.data,
+            profileImage:
+              response.data.profileImage || formData.profileImage
+          });
           setFormData(response.data);
         } catch (err) {
           console.error("Fetch error:", err);
@@ -124,7 +140,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
       crop.height
     )
 
-    return canvas.toDataURL('image/jpeg')
+    return canvas.toDataURL('image/jpeg', 0.7)
   }
 
   const handleCropSave = async () => {
@@ -147,36 +163,24 @@ export default function Profile({ userData, setUserData, onLogout }) {
     try {
       setIsLoading(true);
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setSaveSuccess(false);
-        setMessage("No authentication token found. Please login again.");
-        navigate("/login");
-        return;
-      }
-
       const data = new FormData();
-      // Use fallback empty strings to ensure parameters are never missing/undefined
       data.append("name", formData.name || "");
       data.append("email", formData.email || "");
       data.append("mobile", formData.mobile || "");
 
       if (formData.profileImage && formData.profileImage.startsWith("data:")) {
         const imageBlob = dataURLtoBlob(formData.profileImage);
-        data.append("file", imageBlob, "profile.jpg");
+        // Ensure the key is 'file' to match @RequestParam("file")
+        data.append("file", imageBlob, `profile_${Date.now()}.jpg`);
       }
 
-      console.log("Saving profile with token...");
-      
-      // Explicitly pass the Authorization header
+      // Explicitly set Content-Type for multipart
       const response = await axios.put("/users/update-profile", data, {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json"
+          'Content-Type': 'multipart/form-data'
         }
       });
 
-      console.log("Profile update response:", response.data);
 
       setUserData(response.data);
       const { profileImage, ...lightData } = response.data;
@@ -189,9 +193,9 @@ export default function Profile({ userData, setUserData, onLogout }) {
       console.error("Profile update error:", err);
       console.error("Error status:", err.response?.status);
       console.error("Error response:", err.response?.data);
-      
+
       setSaveSuccess(false);
-      
+
       // Handle specific error cases - don't redirect on 403
       if (err.response?.status === 401) {
         setMessage("Session expired. Please login again.");
@@ -226,9 +230,8 @@ export default function Profile({ userData, setUserData, onLogout }) {
         <div className="profile-card">
           <div className="profile-image-section">
             <img
-              src={
-                formData.profileImage || userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')}
-              alt={userData.name || 'User'}
+              src={profileImageSrc}
+              alt={userData?.name || 'User'}
               className="profile-image"
               onClick={() => setShowPreview(true)}
             />
@@ -334,7 +337,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
           {showPreview && (
             <div className="modal" onClick={() => setShowPreview(false)}>
               <button className="close-preview" onClick={() => setShowPreview(false)}>✕</button>
-              <img src={formData.profileImage || userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')} className="preview-image" />
+              <img src={profileImageSrc} className="preview-image" />
             </div>
           )}
 

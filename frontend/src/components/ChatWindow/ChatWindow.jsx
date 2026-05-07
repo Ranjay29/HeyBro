@@ -232,6 +232,7 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
         status: 'SENT',
         type: 'file',
         fileName: fileMessage.fileName || file.name,
+        fileUrl: fileUrl,
       };
 
       setLiveMessages(prev => [...prev, localMsg]);

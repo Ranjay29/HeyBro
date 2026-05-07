@@ -1,11 +1,21 @@
-const BASE_URL = "https://heybro-backend.onrender.com/api";
+const API_BASE =
+  import.meta.env.VITE_API_URL?.replace('/api', '') ||
+  'https://heybro-backend.onrender.com';
 
 export const getProfileImageUrl = (image, fallback) => {
+
   if (!image) return fallback;
 
-  if (image.startsWith("data:image")) {
+  // BASE64 IMAGE
+  if (image.startsWith('data:image')) {
     return image;
   }
 
-  return `${BASE_URL}/uploads/${image}`;
+  // FULL URL
+  if (image.startsWith('http')) {
+    return image;
+  }
+
+  // NORMAL FILE NAME
+  return `${API_BASE}/api/users/profile-image/${image}`;
 };

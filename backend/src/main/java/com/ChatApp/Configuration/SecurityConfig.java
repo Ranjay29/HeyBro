@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.ChatApp.Security.JwtRequestFilter;
 
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -40,12 +41,11 @@ public class SecurityConfig {
             .requestMatchers("/api/messages/upload").authenticated()
             .requestMatchers("/uploads/**").permitAll()
             .requestMatchers("/api/auth/delete-account").authenticated()
-            .requestMatchers("/api/users/update-profile").authenticated()
+            .requestMatchers("/api/users/update-profile", "/api/users/profile-image/**").permitAll()
             .requestMatchers("/api/users/**").authenticated()
             .anyRequest().authenticated() 
         )
-        .addFilterBefore(jwtRequestFilter, org.springframework.security.web.access.intercept.AuthorizationFilter.class);
-        
+        .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
     @Bean

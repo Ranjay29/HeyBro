@@ -89,10 +89,11 @@ public class MessageController {
             File destination = new File(dir.getAbsolutePath() + File.separator + fileName);
             file.transferTo(destination);
 
-            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/uploads/")
-                    .path(fileName)
-                    .toUriString();
+            String fileUrl = ServletUriComponentsBuilder
+        .fromCurrentContextPath()
+        .path("/uploads/")
+        .path(fileName)
+        .toUriString();
 
             ChatMessage fileMsg = new ChatMessage();
             fileMsg.setSenderMobile(senderMobile);
@@ -110,7 +111,6 @@ public class MessageController {
             response.put("messageType", "file");
             response.put("senderMobile", senderMobile);
             response.put("receiverMobile", receiverMobile);
-
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("Could not upload file: " + e.getMessage());

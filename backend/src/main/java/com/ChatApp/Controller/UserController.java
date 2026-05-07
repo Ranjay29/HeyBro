@@ -1,8 +1,5 @@
 package com.ChatApp.Controller;
 
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import java.io.IOException;
@@ -13,11 +10,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +23,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import com.ChatApp.Entity.User;
 import com.ChatApp.Repository.UserRepository;
@@ -74,7 +76,24 @@ public class UserController {
         return userRepository.findByMobileIn(mobiles);
     }
 
-@PutMapping("/update-profile")
+@GetMapping("/profile-image/{fileName:.+}")
+public ResponseEntity<Resource> getProfileImage(
+        @PathVariable String fileName) throws IOException {
+
+    Path path = Paths.get("profile-images").resolve(fileName).normalize();
+
+    Resource resource = new UrlResource(path.toUri());
+
+    if (!resource.exists() || !resource.isReadable()) {
+        return ResponseEntity.notFound().build();
+    }
+
+    return ResponseEntity.ok()
+            .contentType(MediaType.IMAGE_JPEG)
+            .body(resource);
+}
+
+@PutMapping(value = "/update-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 @PreAuthorize("isAuthenticated()")
 public ResponseEntity<?> updateProfile(
         @RequestParam(value = "name", required = false) String name,
@@ -100,19 +119,48 @@ public ResponseEntity<?> updateProfile(
         user.setMobile(mobile.trim());
     }
 
-    if (file != null && !file.isEmpty()) {
-        if (user.getProfileImage() != null) {
-            Path oldPath = Paths.get("uploads", user.getProfileImage());
+if (file != null && !file.isEmpty()) {
+    try {
+
+        Path uploadsDir = Paths.get("profile-images");
+
+        if (!Files.exists(uploadsDir)) {
+            Files.createDirectories(uploadsDir);
+        }
+
+        if (user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
+            Path oldPath = uploadsDir.resolve(user.getProfileImage()).normalize();
             Files.deleteIfExists(oldPath);
         }
 
-        String fileName = "user_" + user.getId() + "_" + System.currentTimeMillis() + ".jpg";
-        Path path = Paths.get("uploads", fileName);
-        Files.write(path, file.getBytes());
+        String originalName = file.getOriginalFilename();
+
+        String extension =
+                (originalName != null && originalName.contains("."))
+                        ? originalName.substring(originalName.lastIndexOf("."))
+                        : ".jpg";
+
+        String fileName =
+                "user_" + user.getId() + "_" + System.currentTimeMillis() + extension;
+
+        Path filePath = uploadsDir.resolve(fileName).normalize();
+
+        Files.copy(
+                file.getInputStream(),
+                filePath,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+        );
 
         user.setProfileImage(fileName);
-    }
 
+    } catch (Exception e) {
+
+        return ResponseEntity.status(500).body(Map.of(
+                "message", "Failed to save image: " + e.getMessage(),
+                "error", "FILE_SAVE_ERROR"
+        ));
+    }
+}
     userRepository.save(user);
     return ResponseEntity.ok(user);
 }

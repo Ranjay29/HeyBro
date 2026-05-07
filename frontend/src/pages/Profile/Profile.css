@@ -109,6 +109,7 @@
 .preview-image {
   max-width: 90%;
   max-height: 90%;
+  border-radius: 50%;
 }
 
 /* Crop UI */

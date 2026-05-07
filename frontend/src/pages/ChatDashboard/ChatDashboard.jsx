@@ -36,6 +36,18 @@ export default function ChatDashboard({ userData }) {
 
   // Function to fetch unread counts and last message preview for all chats
   const fetchChatSummaries = async () => {
+
+    const getOriginalFilename = (url) => {
+      try {
+        const decodedUrl = decodeURIComponent(url);
+        const parts = decodedUrl.split('/');
+        return parts[parts.length - 1];
+      } catch (error) {
+        console.error("Error extracting original filename:", error);
+        return "Unknown File";
+      }
+    };
+
     if (!currentUserMobile || !chats.length) return;
 
     try {
@@ -47,7 +59,14 @@ export default function ChatDashboard({ userData }) {
             return {
               ...chat,
               unread: res.data.unread,
-              lastMessage: res.data.lastMessage || chat.lastMessage || '',
+              lastMessage:
+                res.data.lastMessage &&
+                  (
+                    res.data.lastMessage.startsWith("http") ||
+                    res.data.lastMessage.startsWith("data:")
+                  )
+                  ? "📁"+ getOriginalFilename(res.data.lastMessage)
+                  : (res.data.lastMessage || chat.lastMessage || ''),
               timestamp: res.data.timestamp
                 ? new Date(res.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : chat.timestamp,
@@ -135,7 +154,7 @@ export default function ChatDashboard({ userData }) {
         if (chatMobile === normalizedSender) {
           return {
             ...chat,
-            lastMessage: text, 
+            lastMessage: text,
             timestamp: now,
             unread: (!selectedChat || normalizePhone(selectedChat.id) !== normalizedSender) && !isOwnMessage
               ? (chat.unread || 0) + 1
