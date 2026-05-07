@@ -42,46 +42,56 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         String header = request.getHeader("Authorization");
+        System.out.println("REQUEST PATH: " + request.getRequestURI());
+        System.out.println("AUTHORIZATION HEADER: " + (header != null ? "Present" : "Missing"));
 
         if (header != null && header.startsWith("Bearer ")) {
 
             String token = header.substring(7);
 
-            String identifier = jwtUtil.extractEmail(token);
+            try {
+                String identifier = jwtUtil.extractEmail(token);
 
-            System.out.println("TOKEN SUBJECT: " + identifier);
+                System.out.println("TOKEN SUBJECT: " + identifier);
 
-            if (identifier != null) {
+                if (identifier != null) {
 
-                User user = userRepository.findByEmailIgnoreCase(identifier)
-                        .orElseGet(() -> userRepository.findByMobile(identifier).orElse(null));
+                    User user = userRepository.findByEmailIgnoreCase(identifier)
+                            .orElseGet(() -> userRepository.findByMobile(identifier).orElse(null));
 
-                if (user != null && jwtUtil.validateToken(token, identifier)) {
+                    if (user != null && jwtUtil.validateToken(token, identifier)) {
 
-                    String role = user.getRole();
+                        String role = user.getRole();
 
-                    if (role == null || role.isEmpty()) {
-                        role = "USER";
+                        if (role == null || role.isEmpty()) {
+                            role = "USER";
+                        }
+
+                        role = role.toUpperCase();
+
+                        String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+
+                        List<GrantedAuthority> authorities = new ArrayList<>();
+                        authorities.add(new SimpleGrantedAuthority(authority));
+
+                        UsernamePasswordAuthenticationToken auth =
+                                new UsernamePasswordAuthenticationToken(user, null, authorities);
+
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+
+                        System.out.println("AUTH SET FOR USER: " + user.getEmail() + " with authority: " + authority);
+                    } else {
+                        System.out.println("USER NOT FOUND or TOKEN INVALID for identifier: " + identifier);
                     }
-
-                    role = role.toUpperCase();
-
-                    String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-
-                    List<GrantedAuthority> authorities = new ArrayList<>();
-                    authorities.add(new SimpleGrantedAuthority(authority));
-
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(user, null, authorities);
-
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-
-                    System.out.println("AUTH: " + SecurityContextHolder.getContext().getAuthentication());
-
-                    System.out.println("AUTH SET: " + authority);
                 }
+            } catch (Exception e) {
+                System.out.println("JWT VALIDATION ERROR: " + e.getMessage());
+                e.printStackTrace();
             }
+        } else {
+            System.out.println("NO BEARER TOKEN FOUND");
         }
+        
         filterChain.doFilter(request, response);
     }
 }

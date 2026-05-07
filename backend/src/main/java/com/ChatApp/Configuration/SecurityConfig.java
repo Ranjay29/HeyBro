@@ -44,7 +44,8 @@ public class SecurityConfig {
             .requestMatchers("/api/users/**").authenticated()
             .anyRequest().authenticated() 
         )
-        .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtRequestFilter, org.springframework.security.web.access.intercept.AuthorizationFilter.class);
+        
         return http.build();
     }
     @Bean

@@ -19,6 +19,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
   const [isEditing, setIsEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Initialize with empty strings so the inputs don't switch from uncontrolled to controlled
   const [formData, setFormData] = useState(userData || {
@@ -54,18 +55,27 @@ export default function Profile({ userData, setUserData, onLogout }) {
   // Fetch latest user data from backend
   useEffect(() => {
     if (!userData && localStorage.getItem("token")) {
+      setIsLoading(true);
       const fetchUser = async () => {
         try {
           const response = await axios.get("/auth/me");
           setUserData(response.data);
+          setFormData(response.data);
         } catch (err) {
           console.error("Fetch error:", err);
+          // If token is invalid, redirect to login
+          if (err.response?.status === 401) {
+            localStorage.removeItem("token");
+            navigate("/login");
+          }
+        } finally {
+          setIsLoading(false);
         }
       };
 
       fetchUser();
     }
-  }, []);
+  }, [userData, setUserData, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -135,8 +145,15 @@ export default function Profile({ userData, setUserData, onLogout }) {
 
   const handleSave = async () => {
     try {
-      setUserData(formData);
+      setIsLoading(true);
+
       const token = localStorage.getItem("token");
+      if (!token) {
+        setSaveSuccess(false);
+        setMessage("No authentication token found. Please login again.");
+        navigate("/login");
+        return;
+      }
 
       const data = new FormData();
       // Use fallback empty strings to ensure parameters are never missing/undefined
@@ -149,12 +166,17 @@ export default function Profile({ userData, setUserData, onLogout }) {
         data.append("file", imageBlob, "profile.jpg");
       }
 
+      console.log("Saving profile with token...");
+      
+      // Explicitly pass the Authorization header
       const response = await axios.put("/users/update-profile", data, {
         headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        }
       });
+
+      console.log("Profile update response:", response.data);
 
       setUserData(response.data);
       const { profileImage, ...lightData } = response.data;
@@ -164,8 +186,27 @@ export default function Profile({ userData, setUserData, onLogout }) {
       setSaveSuccess(true);
       setMessage("Profile updated perfectly!");
     } catch (err) {
+      console.error("Profile update error:", err);
+      console.error("Error status:", err.response?.status);
+      console.error("Error response:", err.response?.data);
+      
       setSaveSuccess(false);
-      setMessage(err.response?.data?.message || err.response?.data || "Failed to update profile");
+      
+      // Handle specific error cases - don't redirect on 403
+      if (err.response?.status === 401) {
+        setMessage("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        setTimeout(() => navigate("/login"), 2000);
+      } else if (err.response?.status === 403) {
+        // Don't redirect - stay on page and show error
+        setMessage("Authentication failed. Please ensure you're logged in correctly and try again.");
+      } else if (err.response?.status === 400) {
+        setMessage(err.response?.data?.message || "Invalid input. Please check your data.");
+      } else {
+        setMessage(err.response?.data?.message || err.response?.data || "Failed to update profile");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -270,13 +311,13 @@ export default function Profile({ userData, setUserData, onLogout }) {
                 </div>
 
                 <div className="button-group">
-                  <button className="save-btn" onClick={handleSave}>
-                    💾 Save Changes
+                  <button className="save-btn" onClick={handleSave} disabled={isLoading}>
+                    {isLoading ? '⏳ Saving...' : '💾 Save Changes'}
                   </button>
                   <button className="cancel-btn" onClick={() => {
                     setIsEditing(false)
                     setFormData(userData)
-                  }}>
+                  }} disabled={isLoading}>
                     ✕ Cancel
                   </button>
                 </div>
@@ -293,7 +334,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
           {showPreview && (
             <div className="modal" onClick={() => setShowPreview(false)}>
               <button className="close-preview" onClick={() => setShowPreview(false)}>✕</button>
-              <img src={formData.profileImage} className="preview-image" />
+              <img src={formData.profileImage || userData.profileImage || "https://ui-avatars.com/api/?name=" + (userData.name || 'User')} className="preview-image" />
             </div>
           )}
 
