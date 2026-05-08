@@ -3,9 +3,6 @@ package com.ChatApp.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -24,13 +21,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.web.bind.annotation.PathVariable;
-
 import com.ChatApp.Entity.User;
 import com.ChatApp.Repository.UserRepository;
 import com.ChatApp.Service.UserService;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+
 
 @CrossOrigin(
     origins = {
@@ -54,6 +50,9 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private Cloudinary cloudinary;
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public Object getAllUsers(@AuthenticationPrincipal User currentUser) {
@@ -76,22 +75,6 @@ public class UserController {
         return userRepository.findByMobileIn(mobiles);
     }
 
-@GetMapping("/profile-image/{fileName:.+}")
-public ResponseEntity<Resource> getProfileImage(
-        @PathVariable String fileName) throws IOException {
-
-    Path path = Paths.get("profile-images").resolve(fileName).normalize();
-
-    Resource resource = new UrlResource(path.toUri());
-
-    if (!resource.exists() || !resource.isReadable()) {
-        return ResponseEntity.notFound().build();
-    }
-
-    return ResponseEntity.ok()
-            .contentType(MediaType.IMAGE_JPEG)
-            .body(resource);
-}
 
 @PutMapping(value = "/update-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 @PreAuthorize("isAuthenticated()")
@@ -100,6 +83,7 @@ public ResponseEntity<?> updateProfile(
         @RequestParam(value = "email", required = false) String email,
         @RequestParam(value = "mobile", required = false) String mobile,
         @RequestParam(value = "file", required = false) MultipartFile file,
+        @RequestParam(value = "deleteImage", required = false, defaultValue = "false") boolean deleteImage,
         @AuthenticationPrincipal User currentUser) throws IOException {
 
     if (currentUser == null) {
@@ -119,48 +103,21 @@ public ResponseEntity<?> updateProfile(
         user.setMobile(mobile.trim());
     }
 
-if (file != null && !file.isEmpty()) {
-    try {
-
-        Path uploadsDir = Paths.get("profile-images");
-
-        if (!Files.exists(uploadsDir)) {
-            Files.createDirectories(uploadsDir);
-        }
-
-        if (user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
-            Path oldPath = uploadsDir.resolve(user.getProfileImage()).normalize();
-            Files.deleteIfExists(oldPath);
-        }
-
-        String originalName = file.getOriginalFilename();
-
-        String extension =
-                (originalName != null && originalName.contains("."))
-                        ? originalName.substring(originalName.lastIndexOf("."))
-                        : ".jpg";
-
-        String fileName =
-                "user_" + user.getId() + "_" + System.currentTimeMillis() + extension;
-
-        Path filePath = uploadsDir.resolve(fileName).normalize();
-
-        Files.copy(
-                file.getInputStream(),
-                filePath,
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING
-        );
-
-        user.setProfileImage(fileName);
-
-    } catch (Exception e) {
-
-        return ResponseEntity.status(500).body(Map.of(
-                "message", "Failed to save image: " + e.getMessage(),
-                "error", "FILE_SAVE_ERROR"
-        ));
+    if (deleteImage) {
+        user.setProfileImage(null);
     }
-}
+
+if (file != null && !file.isEmpty()) {
+
+    Map uploadResult = cloudinary.uploader().upload(
+        file.getBytes(),
+        ObjectUtils.emptyMap()
+   );
+
+    String imageUrl = uploadResult.get("secure_url").toString();
+        user.setProfileImage(imageUrl);
+    }
+    
     userRepository.save(user);
     return ResponseEntity.ok(user);
 }

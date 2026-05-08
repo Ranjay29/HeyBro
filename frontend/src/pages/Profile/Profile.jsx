@@ -21,6 +21,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
   const [message, setMessage] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [deleteImageRequested, setDeleteImageRequested] = useState(false)
 
   // Initialize with empty strings so the inputs don't switch from uncontrolled to controlled
   const [formData, setFormData] = useState(userData || {
@@ -41,12 +42,14 @@ export default function Profile({ userData, setUserData, onLogout }) {
     formData.profileImage || userData?.profileImage || "";
 
   const profileImageSrc =
-    imageValue.startsWith("data:image")
+    imageValue?.startsWith("http")
       ? imageValue
-      : getProfileImageUrl(
-        imageValue,
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || "User")}`
-      );
+      : imageValue?.startsWith("data:image")
+        ? imageValue
+        : getProfileImageUrl(
+          imageValue,
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || "User")}`
+        );
 
   useEffect(() => {
     if (userData) {
@@ -174,6 +177,10 @@ export default function Profile({ userData, setUserData, onLogout }) {
         data.append("file", imageBlob, `profile_${Date.now()}.jpg`);
       }
 
+      if (deleteImageRequested) {
+        data.append("deleteImage", "true");
+      }
+
       // Explicitly set Content-Type for multipart
       const response = await axios.put("/users/update-profile", data, {
         headers: {
@@ -187,6 +194,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
       localStorage.setItem('userData', JSON.stringify(lightData));
 
       setIsEditing(false);
+      setDeleteImageRequested(false);
       setSaveSuccess(true);
       setMessage("Profile updated perfectly!");
     } catch (err) {
@@ -234,12 +242,29 @@ export default function Profile({ userData, setUserData, onLogout }) {
               alt={userData?.name || 'User'}
               className="profile-image"
               onClick={() => setShowPreview(true)}
+              onError={(e) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.name || "User")}`;
+              }}
             />
             {isEditing && (
-              <label className="image-upload-label">
-                <span className="camera-icon">📷</span>
-                <input type="file" accept="image/*" onChange={handleImageChange} hidden />
-              </label>
+              <>
+                <label className="image-upload-label">
+                  <span className="camera-icon">📷</span>
+                  <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                </label>
+                {(formData.profileImage || userData?.profileImage) && (
+                  <button
+                    className="remove-image-btn"
+                    onClick={() => {
+                      setDeleteImageRequested(true);
+                      setFormData(prev => ({ ...prev, profileImage: null }));
+                    }}
+                    title="Delete Profile Image"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -320,6 +345,7 @@ export default function Profile({ userData, setUserData, onLogout }) {
                   <button className="cancel-btn" onClick={() => {
                     setIsEditing(false)
                     setFormData(userData)
+                    setDeleteImageRequested(false)
                   }} disabled={isLoading}>
                     ✕ Cancel
                   </button>
