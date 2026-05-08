@@ -60,13 +60,9 @@ export default function ChatDashboard({ userData }) {
               ...chat,
               unread: res.data.unread,
               lastMessage:
-                res.data.lastMessage &&
-                  (
-                    res.data.lastMessage.startsWith("http") ||
-                    res.data.lastMessage.startsWith("data:")
-                  )
-                  ? "📁"+ getOriginalFilename(res.data.lastMessage)
-                  : (res.data.lastMessage || chat.lastMessage || ''),
+                res.data.messageType === "file"
+                  ? `📁 ${res.data.fileName || "File"}`
+                  : (res.data.lastMessage || chat.lastMessage || '' || 'https://heybro-backend.onrender.com/api/files/' + getOriginalFilename(chat.lastMessage || '')),
               timestamp: res.data.timestamp
                 ? new Date(res.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : chat.timestamp,

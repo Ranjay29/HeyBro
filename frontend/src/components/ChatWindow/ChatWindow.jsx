@@ -95,8 +95,7 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
         const res = await axios.get(`/messages/${currentUser}/${receiverMobile}`);
         if (isMounted) {
           const formatted = res.data.map(msg => {
-            const isFile = msg.messageType === 'file' || (typeof msg.content === "string" &&
-              msg.content.match(/\.(jpg|jpeg|png|pdf|docx|zip|mp4)$/i));
+            const isFile = msg.messageType === 'file';
             return {
               id: msg.id || Math.random(),
               text: isFile ? "" : msg.content,
@@ -105,7 +104,7 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
               status: msg.status || "seen",
               type: isFile ? 'file' : 'text',
               fileName: msg.fileName,
-              fileUrl: isFile ? msg.content : null
+              fileUrl: isFile ? msg.fileUrl : null
             };
           });
           setLiveMessages(formatted);
@@ -127,36 +126,43 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
       webSocketFactory: () => new SockJS(`${backendOrigin}/ws`),
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
+        // Inside your WebSocket useEffect's onConnect function:
         client.subscribe("/topic/messages", (msg) => {
           const received = JSON.parse(msg.body);
           const msgSender = normalizePhone(received.senderMobile);
-          const msgReceiver = normalizePhone(received.receiverMobile);
+          const currentUser = getMe();
 
-          // ONLY add to state if the sender is NOT the current user
-          // This prevents the "double bubble" for the sender
-          if (msgReceiver === currentUser && msgSender === receiverMobile && msgSender !== currentUser) {
-            playChatSound(receiveAudio);
-            const isFile = received.messageType === 'file';
-            const fileLabel = `📁 ${received.fileName || 'File'}`;
+          // 1. If I am the sender, ignore (prevents double bubble)
+          if (msgSender === currentUser) return;
 
-            setLiveMessages(prev => [...prev, {
-              id: Date.now(),
+          // 2. Play sound for receiver
+          playChatSound(receiveAudio);
+
+          const isFile = received.messageType === 'file';
+
+          // 3. Add to the live message list
+          setLiveMessages(prev => [
+            ...prev,
+            {
+              id: received.id || Date.now(),
               text: isFile ? "" : received.content,
               isSender: false,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               status: "delivered",
               type: isFile ? 'file' : 'text',
               fileName: received.fileName,
-            }]);
-            onSendMessageRef.current(isFile ? fileLabel : received.content, msgSender, false);
-          }
+              fileUrl: isFile ? received.content : null
+            }
+          ]);
+
+          // 4. Update the sidebar
+          const label = isFile ? `📁 ${received.fileName}` : received.content;
+          onSendMessageRef.current(label, msgSender, false);
         });
 
-        // Subscribe to profile updates
         client.subscribe("/topic/profile-updates", (msg) => {
           const updatedUser = JSON.parse(msg.body);
           const updatedMobile = normalizePhone(updatedUser.mobile);
-          console.log('Received profile update:', updatedUser);
 
           // Update chat data if this user is in our chat list
           if (updatedMobile !== currentUser) {
@@ -178,17 +184,11 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
 
   const handleSendMessage = () => {
     if (!message.trim() || !stompClient?.connected) return;
+
     const currentUser = getMe();
     const receiverMobile = normalizePhone(chat.mobile || chat.phone || chat.id);
-    const messageObj = {
-      senderMobile: currentUser,
-      receiverMobile,
-      content: message.trim(),
-      messageType: 'text',
-      Status: 'SENT',
-      timestamp: new Date().toISOString()
-    };
 
+    // 1. Add locally first so the UI feels instant
     setLiveMessages(prev => [...prev, {
       id: Date.now(),
       text: message.trim(),
@@ -198,19 +198,26 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
       type: 'text'
     }]);
 
+    // 2. Publish to WebSocket
+    stompClient.publish({
+      destination: "/app/chat",
+      body: JSON.stringify({
+        senderMobile: currentUser,
+        receiverMobile,
+        content: message.trim(),
+        messageType: 'text'
+      })
+    });
+
     playChatSound(sendAudio);
-    stompClient.publish({ destination: "/app/chat", body: JSON.stringify(messageObj) });
     onSendMessageRef.current(message.trim(), receiverMobile, true);
     setMessage('');
   };
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    if (!stompClient || !stompClient.connected) {
-      alert("Chat server not connected. Please wait or refresh.");
-      return;
-    }
+    if (!file || !stompClient?.connected) return;
+
     const currentUser = getMe();
     const receiverMobile = normalizePhone(chat.mobile || chat.phone || chat.id);
     const formData = new FormData();
@@ -219,45 +226,28 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
     formData.append('receiverMobile', receiverMobile);
 
     try {
+      // Backend will save AND broadcast via WebSocket
       const res = await axios.post('/messages/upload', formData);
       const fileMessage = res.data;
-      const fileUrl = fileMessage.content;
-      const fileLabel = `📁 ${fileMessage.fileName || file.name}`;
 
-      const localMsg = {
+      // Add to YOUR screen locally
+      setLiveMessages(prev => [...prev, {
         id: Date.now(),
         text: "",
         isSender: true,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: 'SENT',
-        type: 'file',
-        fileName: fileMessage.fileName || file.name,
-        fileUrl: fileUrl,
-      };
+        status: "sent",
+        type: "file",
+        fileName: fileMessage.fileName,
+        fileUrl: fileMessage.content
+      }]);
 
-      setLiveMessages(prev => [...prev, localMsg]);
+      onSendMessageRef.current(`📁 ${fileMessage.fileName}`, receiverMobile, true);
       playChatSound(sendAudio);
-      stompClient.publish({
-        destination: '/app/chat',
-        body: JSON.stringify({
-          senderMobile: currentUser,
-          receiverMobile,
-          content: fileMessage,
-          messageType: 'file',
-          fileName: fileMessage.fileName || file.name,
-          timestamp: new Date().toISOString()
-        })
-      });
-      if (onSendMessageRef.current) {
-        onSendMessageRef.current(fileLabel, receiverMobile, true);
-      }
-
-      console.log("File shared successfully");
     } catch (err) {
-      console.error('Upload failed:', err.response?.data || err.message);
-      alert("Failed to upload file. Check console for details.");
+      console.error('Upload failed:', err);
     } finally {
-      e.target.value = ''; // Reset input so same file can be selected again
+      e.target.value = '';
     }
   };
 

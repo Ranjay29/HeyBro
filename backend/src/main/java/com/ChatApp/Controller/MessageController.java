@@ -16,6 +16,7 @@ import java.util.HashMap;
 import com.ChatApp.Entity.ChatMessage;
 import com.ChatApp.Modal.ChatSummaryDto;
 import com.ChatApp.Repository.ChatMessageRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -23,9 +24,11 @@ import com.ChatApp.Repository.ChatMessageRepository;
 public class MessageController {
 
     private final ChatMessageRepository chatMessageRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public MessageController(ChatMessageRepository chatMessageRepository) {
+    public MessageController(ChatMessageRepository chatMessageRepository, SimpMessagingTemplate messagingTemplate) {
         this.chatMessageRepository = chatMessageRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @GetMapping("/{user1}/{user2}")
@@ -105,6 +108,7 @@ public class MessageController {
             fileMsg.setStatus("delivered"); // Important for your 'seen' query
             
             chatMessageRepository.save(fileMsg);
+            messagingTemplate.convertAndSend("/topic/messages/" + receiverMobile, fileMsg);
             Map<String, Object> response = new HashMap<>();
             response.put("fileName", fileName);
             response.put("content", fileUrl);
