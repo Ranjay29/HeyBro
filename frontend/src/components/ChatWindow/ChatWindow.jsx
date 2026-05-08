@@ -127,40 +127,38 @@ export default function ChatWindow({ chat, onSendMessage, onOpenProfile, onClose
       connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         // Inside your WebSocket useEffect's onConnect function:
-        client.subscribe("/topic/messages", (msg) => {
-          const received = JSON.parse(msg.body);
-          const msgSender = normalizePhone(received.senderMobile);
-          const currentUser = getMe();
+client.subscribe("/topic/messages", (msg) => {
+  const received = JSON.parse(msg.body);
+  const msgSender = normalizePhone(received.senderMobile);
+  const currentUser = getMe();
 
-          // 1. If I am the sender, ignore (prevents double bubble)
-          if (msgSender === currentUser) return;
+  // 1. Prevent duplicate messages for the sender
+  if (msgSender === currentUser) return;
 
-          // 2. Play sound for receiver
-          playChatSound(receiveAudio);
+  const isFile = received.messageType === 'file';
 
-          const isFile = received.messageType === 'file';
-
-          // 3. Add to the live message list
-          setLiveMessages(prev => [
-            ...prev,
-            {
-              id: received.id || Date.now(),
-              text: isFile ? "" : received.content,
-              isSender: false,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              status: "delivered",
-              type: isFile ? 'file' : 'text',
-              fileName: received.fileName,
-              fileUrl: isFile ? received.content : null
-            }
-          ]);
-
-          // 4. Update the sidebar
-          const label = isFile ? `📁 ${received.fileName}` : received.content;
-          onSendMessageRef.current(label, msgSender, false);
-        });
-
-        client.subscribe("/topic/profile-updates", (msg) => {
+  setLiveMessages(prev => [
+    ...prev,
+    {
+      id: received.id || Date.now(),
+      // For files, text is empty; for text, it's the content
+      text: isFile ? "" : received.content, 
+      isSender: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: "delivered",
+      type: isFile ? 'file' : 'text',
+      fileName: received.fileName,
+      // CRITICAL: Map 'content' (from Java) to 'fileUrl' (for React UI)
+      fileUrl: isFile ? received.content : null 
+    }
+  ]);
+  
+  playChatSound(receiveAudio);
+  
+  // Update sidebar preview
+  const label = isFile ? `📁 ${received.fileName}` : received.content;
+  onSendMessageRef.current(label, msgSender, false);
+});        client.subscribe("/topic/profile-updates", (msg) => {
           const updatedUser = JSON.parse(msg.body);
           const updatedMobile = normalizePhone(updatedUser.mobile);
 

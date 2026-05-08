@@ -108,7 +108,7 @@ public class MessageController {
             fileMsg.setStatus("delivered"); // Important for your 'seen' query
             
             chatMessageRepository.save(fileMsg);
-            messagingTemplate.convertAndSend("/topic/messages/" + receiverMobile, fileMsg);
+            messagingTemplate.convertAndSend("/topic/messages", fileMsg);
             Map<String, Object> response = new HashMap<>();
             response.put("fileName", fileName);
             response.put("content", fileUrl);

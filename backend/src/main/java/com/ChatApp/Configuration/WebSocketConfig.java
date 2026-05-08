@@ -42,7 +42,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public class WebConfig implements WebMvcConfigurer {
         @Override
         public void addResourceHandlers(ResourceHandlerRegistry registry) {
-            String path = Paths.get("uploads").toAbsolutePath().toUri().toString();
             
             registry.addResourceHandler("/uploads/**")
                     .addResourceLocations("file:uploads/");    

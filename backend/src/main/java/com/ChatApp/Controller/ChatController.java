@@ -1,4 +1,4 @@
-	package com.ChatApp.Controller;
+package com.ChatApp.Controller;
 
 import java.time.LocalDateTime;
 
@@ -23,35 +23,30 @@ public class ChatController {
 
     @MessageMapping("/chat")
     public void sendMessage(ChatMessageDto messageDTO) {
+        if (messageDTO.getSenderMobile() == null || messageDTO.getReceiverMobile() == null) 
+            return; 
 
-    	if (messageDTO.getSenderMobile() == null || messageDTO.getReceiverMobile() == null) 
-    	    return; // don't crash server
-    	
-    	
-        // ✅ Save message
+        // 1. Map DTO to Entity
         ChatMessage message = new ChatMessage();
         message.setReceiverMobile(messageDTO.getReceiverMobile());
         message.setSenderMobile(messageDTO.getSenderMobile());
         message.setContent(messageDTO.getContent());
-        message.setMessageType(messageDTO.getMessageType());
+        message.setMessageType(messageDTO.getMessageType() != null ? messageDTO.getMessageType() : "text");
         message.setFileName(messageDTO.getFileName());
         message.setTimestamp(LocalDateTime.now());
-        message.setStatus("delivered"); // Important for your 'seen' query
+        message.setStatus("delivered"); 
 
+        // 2. Save to Database
         chatMessageRepository.save(message);
 
+        // 3. BROADCAST (This MUST match the topic in MessageController)
         messagingTemplate.convertAndSend("/topic/messages", message);
     }
-    
- // NEW: Handle Real-time Call Routing
+
     @MessageMapping("/call-user")
     public void handleCall(CallRequestDTO callRequest) {
-        if (callRequest.getReceiverMobile() == null) {
-            return;
-        }
+        if (callRequest.getReceiverMobile() == null) return;
 
-        // Send the call notification to a specific user's topic
-        // Frontend will subscribe to: /topic/calls/{myMobileNumber}
         messagingTemplate.convertAndSend(
             "/topic/calls/" + callRequest.getReceiverMobile(), 
             callRequest
