@@ -59,7 +59,11 @@ export default function ChatDashboard({ userData }) {
             return {
               ...chat,
               unread: res.data.unread,
-                timestamp: res.data.timestamp
+              lastMessage:
+                res.data.messageType === "file"
+                  ? `📁 ${res.data.fileName || "File"}`
+                  : (res.data.lastMessage || chat.lastMessage || ''),
+              timestamp: res.data.timestamp
                 ? new Date(res.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : chat.timestamp,
             };
