@@ -12,17 +12,15 @@ public class ChatMessage {
 
     private String senderMobile;
     private String receiverMobile;
-
     private String content;       // text message OR file URL
     private String messageType;   // TEXT, IMAGE, FILE
     private String fileName;
-
     private LocalDateTime timestamp;
-    private String status; // optional
-
+    private String status; 
+    private String fileUrl;
+    private String cloudinaryPublicId;
     @Enumerated(EnumType.STRING)
     private MessageStatus messageStatus;
-
     private boolean isRead = false;
 
     public Long getId() { return id; }
@@ -53,7 +51,12 @@ public class ChatMessage {
     public void setMessageStatus(MessageStatus messageStatus) {
         this.messageStatus = messageStatus;
     }
-
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { isRead = read; }
+    public String getCloudinaryPublicId() { return cloudinaryPublicId; }
+    public void setCloudinaryPublicId(String cloudinaryPublicId) {
+        this.cloudinaryPublicId = cloudinaryPublicId;
+    }
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
 }

@@ -17,6 +17,8 @@ import com.ChatApp.Entity.ChatMessage;
 import com.ChatApp.Modal.ChatSummaryDto;
 import com.ChatApp.Repository.ChatMessageRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -25,10 +27,13 @@ public class MessageController {
 
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final Cloudinary cloudinary;
 
-    public MessageController(ChatMessageRepository chatMessageRepository, SimpMessagingTemplate messagingTemplate) {
+
+    public MessageController(ChatMessageRepository chatMessageRepository, SimpMessagingTemplate messagingTemplate, Cloudinary cloudinary) {
         this.chatMessageRepository = chatMessageRepository;
         this.messagingTemplate = messagingTemplate;
+        this.cloudinary = cloudinary;
     }
 
     @GetMapping("/{user1}/{user2}")
@@ -36,25 +41,52 @@ public class MessageController {
         return chatMessageRepository.findChatHistory(user1, user2);
     }
 
-    @GetMapping("/unread/{user}/{other}")
-    public long getUnreadCount(@PathVariable String user, @PathVariable String other) {
-        return chatMessageRepository.countUnreadMessages(other, user);
+@GetMapping("/summary/{user}/{other}")
+public ChatSummaryDto getChatSummary(
+        @PathVariable String user,
+        @PathVariable String other
+) {
+
+    String unread = String.valueOf(
+            chatMessageRepository.countUnreadMessages(other, user)
+    );
+
+    ChatMessage lastMessage = chatMessageRepository
+            .findLatestMessage(user, other, PageRequest.of(0, 1))
+            .stream()
+            .findFirst()
+            .orElse(null);
+
+    String lastText = "";
+    String lastTimestamp = "";
+    String messageType = "text";
+    String fileName = "";
+
+    if (lastMessage != null) {
+
+        messageType = lastMessage.getMessageType();
+        fileName = lastMessage.getFileName();
+        lastTimestamp = lastMessage.getTimestamp().toString();
+
+        if ("file".equalsIgnoreCase(messageType)) {
+
+            lastText = "📁 " +
+                    (fileName != null ? fileName : "File");
+
+        } else {
+
+            lastText = lastMessage.getContent();
+        }
     }
 
-    @GetMapping("/summary/{user}/{other}")
-    public ChatSummaryDto getChatSummary(@PathVariable String user, @PathVariable String other) {
-        long unread = chatMessageRepository.countUnreadMessages(other, user);
-        ChatMessage lastMessage = chatMessageRepository
-                .findLatestMessage(user, other, PageRequest.of(0, 1))
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        String lastText = lastMessage != null ? lastMessage.getContent() : "";
-        String lastTimestamp = lastMessage != null ? lastMessage.getTimestamp().toString() : "";
-
-        return new ChatSummaryDto(lastText, lastTimestamp, unread);
-    }
+    return new ChatSummaryDto(
+            lastText,
+            lastTimestamp,
+            unread,
+            messageType,
+            fileName
+    );
+}
 
     @PutMapping("/mark-read/{user}/{other}")
     public ResponseEntity<?> markAsRead(@PathVariable String user, @PathVariable String other) {
@@ -84,38 +116,45 @@ public class MessageController {
             @RequestParam String receiverMobile) {
         
         try {
-            String uploadDir = "uploads/";
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
+            Map uploadResult = cloudinary.uploader().upload(
+                file.getBytes(),
+                ObjectUtils.emptyMap()
+          );
+
+            String fileUrl =
+                uploadResult.get("secure_url").toString();
+
+            String publicId = uploadResult.get("public_id").toString();
 
             String fileName = file.getOriginalFilename();
-            File destination = new File(dir.getAbsolutePath() + File.separator + fileName);
-            file.transferTo(destination);
-
-            String fileUrl = ServletUriComponentsBuilder
-        .fromCurrentContextPath()
-        .path("/uploads/")
-        .path(fileName)
-        .toUriString();
 
             ChatMessage fileMsg = new ChatMessage();
             fileMsg.setSenderMobile(senderMobile);
             fileMsg.setReceiverMobile(receiverMobile);
             fileMsg.setContent(fileUrl);
+            fileMsg.setFileUrl(fileUrl);
+            fileMsg.setCloudinaryPublicId(publicId);
             fileMsg.setMessageType("file");
             fileMsg.setFileName(fileName);
             fileMsg.setTimestamp(LocalDateTime.now());
             fileMsg.setStatus("delivered"); // Important for your 'seen' query
             
-            chatMessageRepository.save(fileMsg);
-            messagingTemplate.convertAndSend("/topic/messages", fileMsg);
-            Map<String, Object> response = new HashMap<>();
-            response.put("fileName", fileName);
-            response.put("content", fileUrl);
-            response.put("messageType", "file");
-            response.put("senderMobile", senderMobile);
-            response.put("receiverMobile", receiverMobile);
-            return ResponseEntity.ok(response);
+chatMessageRepository.save(fileMsg);
+
+messagingTemplate.convertAndSend(
+    "/topic/messages",
+    fileMsg
+);
+
+Map<String, Object> response = new HashMap<>();
+
+response.put("fileName", fileName);
+response.put("content", fileUrl);
+response.put("messageType", "file");
+response.put("senderMobile", senderMobile);
+response.put("receiverMobile", receiverMobile);
+
+return ResponseEntity.ok(response);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("Could not upload file: " + e.getMessage());
         }
